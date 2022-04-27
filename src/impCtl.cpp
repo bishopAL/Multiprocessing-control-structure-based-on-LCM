@@ -44,115 +44,25 @@ int main(int argc, char ** argv)
     Lcm.subscribe("IMPPARA", &ImpParaHandler::handleMessage, &ipHandle);
     Lcm.subscribe("ROBOTSTATE", &RobotStateHandler::handleMessage, &rsHandle);
 
-    struct sched_param param1, param2;
-    pthread_attr_t attr1, attr2;
-    pthread_t thread1, thread2;
-    int ret;
+    pthread_t th1, th2;
+	int i, ret;
+	ret = pthread_create(&th1,NULL,paraUpdate,NULL);
+    if(ret != 0)
+	{
+		printf("create pthread1 error!\n");
+		exit(1);
+	}
+    ret = pthread_create(&th2,NULL,impCtller,NULL);
+    if(ret != 0)
+	{
+		printf("create pthread2 error!\n");
+		exit(1);
+	}
+	
+	pthread_join(th1,NULL);
+    pthread_join(th2,NULL);
+    while(1);
     
-    /* 1.Lock memory */
-    if(mlockall(MCL_CURRENT|MCL_FUTURE) == -1) {
-        printf("mlockall failed: %m\n");
-
-        exit(-2);
-    }
-    /* 2. Initialize pthread attributes (default values) */
-    ret = pthread_attr_init(&attr1);
-    if (ret) {
-        printf("init pthread attributes failed\n");
-        goto out;
-    }
-    ret = pthread_attr_init(&attr2);
-    if (ret) {
-        printf("init pthread attributes failed\n");
-        goto out;
-    }
- 
-    /* 3. Set a specific stack size  */
-    ret = pthread_attr_setstacksize(&attr1, PTHREAD_STACK_MIN);
-    if (ret) {
-        printf("pthread setstacksize failed\n");
-        goto out;
-    }
-    ret = pthread_attr_setstacksize(&attr2, PTHREAD_STACK_MIN);
-    if (ret) {
-        printf("pthread setstacksize failed\n");
-        goto out;
-    }
- 
-    /*4. Set scheduler policy and priority of pthread */
-    ret = pthread_attr_setschedpolicy(&attr1, SCHED_FIFO);
-    if (ret) {
-        printf("pthread setschedpolicy failed\n");
-        goto out;
-    }
-    ret = pthread_attr_setschedpolicy(&attr2, SCHED_FIFO);
-    if (ret) {
-        printf("pthread setschedpolicy failed\n");
-        goto out;
-    }
-    
-    
-    param1.sched_priority = 20;
-    param2.sched_priority = 20;
-
-    ret = pthread_attr_setschedparam(&attr1, &param1);
-    if (ret) {
-            printf("pthread setschedparam failed\n");
-            goto out;
-    }
-    ret = pthread_attr_setschedparam(&attr2, &param2);
-    if (ret) {
-            printf("pthread setschedparam failed\n");
-            goto out;
-    }
-    
-
-    /*5. Use scheduling parameters of attr */
-    ret = pthread_attr_setinheritsched(&attr1, PTHREAD_EXPLICIT_SCHED);
-    if (ret) {
-            printf("pthread setinheritsched failed\n");
-            goto out;
-    }
-    ret = pthread_attr_setinheritsched(&attr2, PTHREAD_EXPLICIT_SCHED);
-    if (ret) {
-            printf("pthread setinheritsched failed\n");
-            goto out;
-    }
- 
-    /*6. Create a pthread with specified attributes */
-    #ifdef THREAD1_ENABLE
-    ret = pthread_create(&thread1, &attr1, paraUpdate, NULL);
-    if (ret) {
-            printf("create pthread1 failed\n");
-            goto out;
-    }
-    #endif
-
-    #ifdef THREAD2_ENABLE
-    ret = pthread_create(&thread2, &attr2, impCtller, NULL);
-    if (ret) {
-            printf("create pthread2 failed\n");
-            goto out;
-    }
-    #endif
-
-    #ifdef THREAD1_ENABLE
-    ret = pthread_join(thread1, NULL);
-    if (ret)
-        printf("join pthread1 failed: %m\n");
-    #endif
-
-    #ifdef THREAD2_ENABLE
-    ret = pthread_join(thread2, NULL);
-    if (ret)
-        printf("join pthread2 failed: %m\n");
-    #endif
- 
-    /*7. Join the thread and wait until it is done */
-    
-out:
-    ret;
-
     
     return 0;
 }
