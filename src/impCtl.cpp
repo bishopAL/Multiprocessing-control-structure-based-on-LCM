@@ -52,6 +52,7 @@ int main(int argc, char ** argv)
     /* 1.Lock memory */
     if(mlockall(MCL_CURRENT|MCL_FUTURE) == -1) {
         printf("mlockall failed: %m\n");
+
         exit(-2);
     }
     /* 2. Initialize pthread attributes (default values) */
