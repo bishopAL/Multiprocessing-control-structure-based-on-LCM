@@ -8,6 +8,7 @@
 #include <sys/time.h>
 #include <sys/mman.h>
 #include <unistd.h>
+#include <pthread.h>
 
 using namespace std;
 
@@ -23,7 +24,6 @@ int main(int argc, char ** argv)
 
     for(int j=0; j<100; j++)
     {
-        lcm.handle();
         for(int i=0; i<12; i++)
         {
             ip.D[i] = j;

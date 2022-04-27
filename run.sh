@@ -1,4 +1,6 @@
 #!/bin/bash
-cd bin
+cd build
+# cmake ..
+# make
 ./impCtl &
 ./stateEst &
