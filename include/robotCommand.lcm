@@ -1,0 +1,5 @@
+package robotCommand;
+struct robotCommand
+{
+    double  targetEndPos[12];
+}

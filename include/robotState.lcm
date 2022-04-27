@@ -1,0 +1,7 @@
+package robotState;
+struct robotState
+{
+    double  F[12];
+    double  endPos[12];
+    double  endVel[12];
+}

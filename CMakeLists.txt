@@ -1,4 +1,3 @@
-cmake_minimum_required( VERSION 2.8 )
 project( useEigen )
 
 set( CMAKE_BUILD_TYPE "Debug" )
@@ -12,7 +11,8 @@ set(LIBRARY_OUTPUT_PATH ${PROJECT_SOURCE_DIR}/lib)
 
 include_directories(${PROJECT_SOURCE_DIR}/include)
 
-add_executable(pub src/pub.cpp)
-target_link_libraries(pub lcm)
-add_executable(sub src/sub.cpp)
-target_link_libraries(sub lcm)
+add_executable(stateEst src/stateEst.cpp)
+target_link_libraries(stateEst lcm)
+
+add_executable(impCtl src/impCtl.cpp)
+target_link_libraries(impCtl lcm)

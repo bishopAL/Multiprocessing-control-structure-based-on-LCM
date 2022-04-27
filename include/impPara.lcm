@@ -1,0 +1,9 @@
+package impPara;
+struct impPara
+{
+    double  K[12];
+    double  D[12];
+    double  P[12];
+    double  V[12];
+    double  Fr[12];
+}
