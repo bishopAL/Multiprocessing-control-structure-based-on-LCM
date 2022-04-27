@@ -27,7 +27,7 @@ void *paraUpdate(void *data)
 
 void *impCtller(void *data)
 {
-        for(int j=0; j<100; j++)
+    for(int j=0; j<100; j++)
     {
         for(int i=0; i<12; i++)
         {
@@ -45,7 +45,7 @@ int main(int argc, char ** argv)
     Lcm.subscribe("ROBOTSTATE", &RobotStateHandler::handleMessage, &rsHandle);
 
     pthread_t th1, th2;
-	int i, ret;
+	int ret;
 	ret = pthread_create(&th1,NULL,paraUpdate,NULL);
     if(ret != 0)
 	{
@@ -59,10 +59,9 @@ int main(int argc, char ** argv)
 		exit(1);
 	}
 	
-	pthread_join(th1,NULL);
-    pthread_join(th2,NULL);
+	pthread_join(th1, NULL);
+    pthread_join(th2, NULL);
     while(1);
-    
     
     return 0;
 }
