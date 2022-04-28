@@ -58,6 +58,7 @@ class RobotCommandHandler
     public:
         ~RobotCommandHandler() {}
         float targetEndPos[12];
+        bool robotRunEnable;
         void handleMessage(const lcm::ReceiveBuffer* rbuf,
                 const std::string& chan, 
                 const robotCommand::robotCommand* msg)
@@ -66,5 +67,6 @@ class RobotCommandHandler
             {
                 targetEndPos[i] = msg->targetEndPos[i];
             }
+            robotRunEnable = msg->robotRunEnable;
         }
 };

@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 2.8)
+cmake_minimum_required(VERSION 2.9)
 project( useEigen )
 
 set( CMAKE_BUILD_TYPE "Debug" )
@@ -15,8 +15,8 @@ include_directories(${PROJECT_SOURCE_DIR}/include)
 add_executable(stateEst src/stateEst.cpp)
 target_link_libraries(stateEst lcm pthread)
 
-# add_executable(threadTesting src/threadTesting.cpp)
-# target_link_libraries(threadTesting pthread)
+add_executable(robotCmd src/robotCmd.cpp)
+target_link_libraries(robotCmd lcm pthread)
 
 add_executable(impCtl src/impCtl.cpp)
 target_link_libraries(impCtl lcm pthread)
