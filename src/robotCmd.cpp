@@ -11,7 +11,7 @@
 #include <sys/mman.h>
 #include <unistd.h>
 #include <pthread.h>
-#include <dynamixel.h>
+#include <dynamixel/dynamixel.h>
 
 using namespace std;
 #define THREAD1_ENABLE 1

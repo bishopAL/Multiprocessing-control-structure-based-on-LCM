@@ -1,4 +1,4 @@
-#include "dynamixel.h"
+#include "dynamixel/dynamixel.h"
 
 using namespace std;
 using namespace dynamixel;
