@@ -11,9 +11,9 @@ initFlag = false;
 timePresent = 0.0;
 timePresentForSwing << 0.0, 0.0, 0.0, 0.0;
 targetCoMVelocity << 0.0, 0.0, 0.0;
-L1 = 33.5;
-L2 = 47.5;
-L3 = 23.1;
+L1 = 33.5 / 1000;
+L2 = 47.5 / 1000;
+L3 = 23.1 / 1000;
 width = 132.0;
 length = 172.0;  
 shoulderPos << width/2, length/2, width/2, -length/2, -width/2, length/2, -width/2, -length/2;  // X-Y: LF, RF, LH, RH
@@ -77,7 +77,7 @@ void MotionControl::updateJacobians()
     jacobian_vector[3](2, 2) = L2*sin(jointPstPos(3,0))*sin(jointPstPos(3,1))*sin(jointPstPos(3,2)) - L2*cos(jointPstPos(3,1))*cos(jointPstPos(3,2))*sin(jointPstPos(3,0));
 }
 
-void MotionControl::forwardKinematics()
+void MotionControl::updateFtsPstPos()
 {
     ftsPstPos(0, 0) = L2 * cos(jointPstPos(0,1) + jointPstPos(0,2)) - L1 * sin(jointPstPos(0,1));
     ftsPstPos(0, 1) = L3 * sin(jointPstPos(0,0)) + L1 * cos(jointPstPos(0,0)) * cos(jointPstPos(0,1)) + L2 * cos(jointPstPos(0,0)) * cos(jointPstPos(0,1)) * sin(jointPstPos(0,2)) + L2 * cos(jointPstPos(0,0)) * cos(jointPstPos(0,2)) * sin(jointPstPos(0,1));
@@ -91,6 +91,16 @@ void MotionControl::forwardKinematics()
     ftsPstPos(3, 0) = - L2 * cos(jointPstPos(3, 1) + jointPstPos(3, 2)) + L1 * sin(jointPstPos(3, 1));
     ftsPstPos(3, 1) = L3 * sin(jointPstPos(3, 0)) - L1 * cos(jointPstPos(3, 0)) * cos(jointPstPos(3, 1)) - L2 * cos(jointPstPos(3, 0)) * cos(jointPstPos(3, 1)) * sin(jointPstPos(3, 2)) - L2 * cos(jointPstPos(3, 0)) * cos(jointPstPos(3, 2)) * sin(jointPstPos(3, 1));
     ftsPstPos(3, 2) = - L3 * cos(jointPstPos(3, 0)) - L1 * sin(jointPstPos(3, 0)) * cos(jointPstPos(3, 1)) - L2 * sin(jointPstPos(3, 0)) * cos(jointPstPos(3, 1)) * sin(jointPstPos(3, 2)) - L2 * sin(jointPstPos(3, 0)) * cos(jointPstPos(3, 2)) * sin(jointPstPos(3, 1));
+}
+
+void MotionControl::updateFtsPstVel()
+{
+    for(int i=0; i<4; i++)
+    {
+        Matrix <float, 3, 1> temp_vel;
+        temp_vel = jacobian_vector[i] * jointPstVel.row(i).transpose();
+        ftsPstVel.row(i) = temp_vel.transpose();
+    }
 }
 
 void MotionControl::inverseKinematics()
@@ -130,8 +140,8 @@ void MotionControl::inverseKinematics()
               factor_x=-1;
               factor_y=-1;
           }
-          cmdJointPos(legNum,1) = -factor_xc * (asin(L3 / sqrt( cmdFootPos(legNum,2)*cmdFootPos(legNum,2) + cmdFootPos(legNum,1)*cmdFootPos(legNum,1) )) + atan2(cmdFootPos(legNum,2),factor_y * cmdFootPos(legNum,1)) );     
-          cmdJointPos(legNum,0) = -factor_yc * (asin((cmdFootPos(legNum,1) * cmdFootPos(legNum,1) + cmdFootPos(legNum,0) * cmdFootPos(legNum,0) + cmdFootPos(legNum,2) * cmdFootPos(legNum,2) + L1 * L1 - L2 * L2 - L3 * L3) / ( 2 * L1 * sqrt (cmdFootPos(legNum,1) * cmdFootPos(legNum,1) +  cmdFootPos(legNum,0) * cmdFootPos(legNum,0) + cmdFootPos(legNum,2) * cmdFootPos(legNum,2) - L3 * L3)))
+          cmdJointPos(legNum,0) = -factor_xc * (asin(L3 / sqrt( cmdFootPos(legNum,2)*cmdFootPos(legNum,2) + cmdFootPos(legNum,1)*cmdFootPos(legNum,1) )) + atan2(cmdFootPos(legNum,2),factor_y * cmdFootPos(legNum,1)) );     
+          cmdJointPos(legNum,1) = -factor_yc * (asin((cmdFootPos(legNum,1) * cmdFootPos(legNum,1) + cmdFootPos(legNum,0) * cmdFootPos(legNum,0) + cmdFootPos(legNum,2) * cmdFootPos(legNum,2) + L1 * L1 - L2 * L2 - L3 * L3) / ( 2 * L1 * sqrt (cmdFootPos(legNum,1) * cmdFootPos(legNum,1) +  cmdFootPos(legNum,0) * cmdFootPos(legNum,0) + cmdFootPos(legNum,2) * cmdFootPos(legNum,2) - L3 * L3)))
                   - atan2(sqrt(cmdFootPos(legNum,1) * cmdFootPos(legNum,1) + cmdFootPos(legNum,2) * cmdFootPos(legNum,2) - L3 * L3) , factor_x * cmdFootPos(legNum,0)));
           cmdJointPos(legNum,2) = -factor_zc * asin((L1 * L1 + L2 * L2 + L3 * L3 - cmdFootPos(legNum,1) * cmdFootPos(legNum,1) - cmdFootPos(legNum,0) * cmdFootPos(legNum,0) - cmdFootPos(legNum,2) * cmdFootPos(legNum,2)) / (2 * L1 * L2));
         }

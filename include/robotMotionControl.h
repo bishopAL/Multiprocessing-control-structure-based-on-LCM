@@ -43,6 +43,7 @@ class MotionControl
         Matrix<float, 4, 3> leg2CoMPrePos;  // present X-Y-Z: LF, RF, LH, RH in CoM cordinate
         Matrix<float, 4, 3> leg2CoMCmdPos;  // command X-Y-Z: LF, RF, LH, RH in CoM cordinate
         Matrix<float, 4, 3> ftsPstPos;
+        Matrix<float, 4, 3> ftsPstVel;
         Matrix<float, 4, 3> cmdJointPos;
         Matrix<float, 4, 3> cmdFootPos;
         Matrix<float, 4, 3> joinCmdPos;  // command joint angle 0-11
@@ -76,6 +77,7 @@ class MotionControl
         void updateJointPstPos(vector<float> jointPos);
         void updateJacobians();
         void inverseKinematics();   // standing state
-        void forwardKinematics();
+        void updateFtsPstPos();
+        void updateFtsPstVel();
         MotionControl();
 };

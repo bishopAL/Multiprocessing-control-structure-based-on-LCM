@@ -15,8 +15,9 @@ include_directories(${PROJECT_SOURCE_DIR}/include)
 add_executable(stateEst src/stateEst.cpp)
 target_link_libraries(stateEst lcm pthread)
 
-add_executable(robotCmd src/robotCmd.cpp)
-target_link_libraries(robotCmd lcm pthread)
+add_executable(robotCmd src/robotCmd.cpp src/robotMotionControl.cpp src/dynamixel.cpp)
+target_link_libraries(robotCmd lcm pthread dxl_x64_cpp)
 
 add_executable(impCtl src/impCtl.cpp)
 target_link_libraries(impCtl lcm pthread)
+
