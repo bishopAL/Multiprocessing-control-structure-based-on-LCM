@@ -34,9 +34,9 @@ Matrix<float, 1, 3> xc_dotdot;
 Matrix<float, 1, 3> xc_dot;
 Matrix<float, 1, 3> xc;
 vector<float> temp_pos;
-float K = 10000;
-float B = 3000;
-float M = 30;
+float K = 1000;
+float B = 30;
+float M = 3;
 
 void *robotCommandUpdate(void *data)
 {
