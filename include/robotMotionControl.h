@@ -79,5 +79,5 @@ class MotionControl
         void inverseKinematics();   // standing state
         void updateFtsPstPos();
         void updateFtsPstVel();
-        MotionControl();
+        MotionControl(float tP, float tFGP, Matrix<float, 4, 2> tFSP);
 };

@@ -5,13 +5,8 @@
 #include "impPara/impPara.hpp"
 #include <handler.hpp>
 #include <iostream>
-#include <stdio.h>
-#include <stdlib.h>
-#include <sys/time.h>
-#include <sys/mman.h>
-#include <unistd.h>
-#include <pthread.h>
 #include <dynamixel/dynamixel.h>
+#include <robotCmd.h>
 
 using namespace std;
 #define THREAD1_ENABLE 1
@@ -21,6 +16,8 @@ lcm::LCM Lcm;
 robotCommand::robotCommand rc;
 robotState::robotState rs;
 MotionControl mc;
+IMPControl imp;
+
 Matrix<float, 3, 1> force;
 Matrix<float, 3, 1> tau;
 ImpParaHandler ipHandle;
@@ -38,6 +35,38 @@ float K = 1000;
 float B = 30;
 float M = 3;
 
+IMPControl::IMPControl()
+{
+    K<<1000,1000,1000,1000;
+    B<<30,30,30,30;
+    M<<3,3,3,3;
+}
+void IMPControl::impCtller()
+{
+    // xc_dotdot = 0 + M/-1*( - footForce[i][0] + refForce[i] - B * (pstFootVel[i][0] - 0) - K * (pstFootPos[i][0] - targetFootPos(i,0)));
+    xc_dotdot =  M.cwiseInverse() * ( -force.transpose() + B.cwiseProduct(target_vel - mc.ftsPstVel) +  K.cwiseProduct(target_pos - mc.ftsPstPos)); //
+    xc_dot =  mc.ftsPstVel + xc_dotdot * 0.01;
+    xc =  mc.ftsPstPos + (xc_dot * 0.01);
+}
+void impdeliver()
+{
+    Matrix<float, 3, 4> temp;
+    for(int i=0; i<12; i++)
+        temp(i/4,i%4) = motors.present_torque[i];
+    for (int i=0; i<4; i++)
+        imp.force.col(i) = mc.jacobian_vector[i].transpose().inverse() * temp.col(i);
+    //imp.target_pos 
+    //imp.target_vel
+    //imp.target_acc
+}
+/*
+impdeliver();
+imp.impCtller( );
+mc.cmdFootPos = imp.xc;
+mc.inverseKinematics();
+*/
+
+
 void *robotCommandUpdate(void *data)
 {
     
@@ -50,13 +79,13 @@ void *robotStateUpdateSend(void *data)
     motors.torqueEnable();
     motors.setPosition(start_pos);
     for(int i=0; i<3; i++)
-    temp_pos.push_back(0.0);
+        temp_pos.push_back(0.0);
     usleep(1e6);
     motors.getPosition();
     for(int i=0; i<4; i++)
     {
         for(int j=0; j<3; j++)
-        mc.jointPstPos(i, j) = motors.present_position[j];
+            mc.jointPstPos(i, j) = motors.present_position[j];
     }
     mc.updateFtsPstPos();
     target_pos = mc.ftsPstPos.row(0);
@@ -86,16 +115,18 @@ void *robotStateUpdateSend(void *data)
         // mc.cmdFootPos = mc.ftsPstPos;
         // mc.inverseKinematics();
         for(int i=0; i<3; i++)
-        tau(i,0) = motors.present_torque[i];
+            tau(i,0) = motors.present_torque[i];
         force = mc.jacobian_vector[0].transpose().inverse() * tau;
         // xc_dotdot = 0 + M/-1*( - footForce[i][0] + refForce[i] - B * (pstFootVel[i][0] - 0) - K * (pstFootPos[i][0] - targetFootPos(i,0)));
         xc_dotdot = 1/M*( -force.transpose() + B * (target_vel - mc.ftsPstVel.row(0)) +  K * (target_pos - mc.ftsPstPos.row(0))); //
         xc_dot =  mc.ftsPstVel.row(0) + xc_dotdot * 0.01;
         xc =  mc.ftsPstPos.row(0) + (xc_dot * 0.01);
+
         mc.cmdFootPos.row(0) = xc;
         mc.inverseKinematics();
+
         for(int i=0; i<3; i++)
-        temp_pos[i] = mc.cmdJointPos(0,i);
+            temp_pos[i] = mc.cmdJointPos(0,i);
         motors.setPosition(temp_pos);
         cout<<"xc_dotdot: "<<xc_dotdot<<"; xc_dot: "<<xc_dot<<"; xc: "<<xc<<endl;
 
