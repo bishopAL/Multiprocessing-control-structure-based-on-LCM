@@ -1,25 +1,31 @@
 #include "robotMotionControl.h"
 
-MotionControl::MotionControl(float tP, float tFGP, Matrix<float, 4, 2> tFSP)
+MotionControl::MotionControl()
 {
-Matrix<float, 3, 3> temp;
-temp << 0, 0, 0, 0, 0, 0, 0, 0, 0;
-for(uint8_t i=0; i<4; i++)
-    jacobian_vector.push_back(temp);
+    Matrix<float, 3, 3> temp;
+    temp << 0, 0, 0, 0, 0, 0, 0, 0, 0;
+    for(uint8_t i=0; i<4; i++)
+        jacobian_vector.push_back(temp);
 
-initFlag = false;
-timePeriod = tP;
-timeForGaitPeriod = tFGP;
-timeForStancePhase = tFSP;
-timePresent = 0.0;
-timePresentForSwing << 0.0, 0.0, 0.0, 0.0;
-targetCoMVelocity << 0.0, 0.0, 0.0;
-L1 = 33.5 / 1000;
-L2 = 47.5 / 1000;
-L3 = 23.1 / 1000;
-width = 132.0;
-length = 172.0;  
-shoulderPos << width/2, length/2, width/2, -length/2, -width/2, length/2, -width/2, -length/2;  // X-Y: LF, RF, LH, RH
+    initFlag = false;
+    timePresent = 0.0;
+    timePresentForSwing << 0.0, 0.0, 0.0, 0.0;
+    targetCoMVelocity << 0.0, 0.0, 0.0;
+    L1 = 33.5 / 1000;
+    L2 = 47.5 / 1000;
+    L3 = 23.1 / 1000;
+    width = 132.0;
+    length = 172.0;  
+    shoulderPos << width/2, length/2, width/2, -length/2, -width/2, length/2, -width/2, -length/2;  // X-Y: LF, RF, LH, RH
+}
+
+void MotionControl::setPhase(float tP, float tFGP, Matrix<float, 4, 2> tFSP)
+{
+    timePeriod = tP;
+    timeForGaitPeriod = tFGP;
+    timeForStancePhase = tFSP;
+    timePresent = 0.0;
+    timePresentForSwing << 0.0, 0.0, 0.0, 0.0;
 }
 
 void MotionControl::setInitPos(Matrix<float, 4, 3> initPosition)
@@ -160,10 +166,10 @@ void MotionControl::inverseKinematics()
               factor_x=-1;
               factor_y=-1;
           }
-          cmdJointPos(legNum,0) = -factor_xc * (asin(L3 / sqrt( cmdFootPos(legNum,2)*cmdFootPos(legNum,2) + cmdFootPos(legNum,1)*cmdFootPos(legNum,1) )) + atan2(cmdFootPos(legNum,2),factor_y * cmdFootPos(legNum,1)) );     
-          cmdJointPos(legNum,1) = -factor_yc * (asin((cmdFootPos(legNum,1) * cmdFootPos(legNum,1) + cmdFootPos(legNum,0) * cmdFootPos(legNum,0) + cmdFootPos(legNum,2) * cmdFootPos(legNum,2) + L1 * L1 - L2 * L2 - L3 * L3) / ( 2 * L1 * sqrt (cmdFootPos(legNum,1) * cmdFootPos(legNum,1) +  cmdFootPos(legNum,0) * cmdFootPos(legNum,0) + cmdFootPos(legNum,2) * cmdFootPos(legNum,2) - L3 * L3)))
-                  - atan2(sqrt(cmdFootPos(legNum,1) * cmdFootPos(legNum,1) + cmdFootPos(legNum,2) * cmdFootPos(legNum,2) - L3 * L3) , factor_x * cmdFootPos(legNum,0)));
-          cmdJointPos(legNum,2) = -factor_zc * asin((L1 * L1 + L2 * L2 + L3 * L3 - cmdFootPos(legNum,1) * cmdFootPos(legNum,1) - cmdFootPos(legNum,0) * cmdFootPos(legNum,0) - cmdFootPos(legNum,2) * cmdFootPos(legNum,2)) / (2 * L1 * L2));
+          joinCmdPos(legNum,0) = -factor_xc * (asin(L3 / sqrt( legCmdPos(legNum,2)*legCmdPos(legNum,2) + legCmdPos(legNum,1)*legCmdPos(legNum,1) )) + atan2(legCmdPos(legNum,2),factor_y * legCmdPos(legNum,1)) );     
+          joinCmdPos(legNum,1) = -factor_yc * (asin((legCmdPos(legNum,1) * legCmdPos(legNum,1) + legCmdPos(legNum,0) * legCmdPos(legNum,0) + legCmdPos(legNum,2) * legCmdPos(legNum,2) + L1 * L1 - L2 * L2 - L3 * L3) / ( 2 * L1 * sqrt (legCmdPos(legNum,1) * legCmdPos(legNum,1) +  legCmdPos(legNum,0) * legCmdPos(legNum,0) + legCmdPos(legNum,2) * legCmdPos(legNum,2) - L3 * L3)))
+                  - atan2(sqrt(legCmdPos(legNum,1) * legCmdPos(legNum,1) + legCmdPos(legNum,2) * legCmdPos(legNum,2) - L3 * L3) , factor_x * legCmdPos(legNum,0)));
+          joinCmdPos(legNum,2) = -factor_zc * asin((L1 * L1 + L2 * L2 + L3 * L3 - legCmdPos(legNum,1) * legCmdPos(legNum,1) - legCmdPos(legNum,0) * legCmdPos(legNum,0) - legCmdPos(legNum,2) * legCmdPos(legNum,2)) / (2 * L1 * L2));
         }
 }
 
