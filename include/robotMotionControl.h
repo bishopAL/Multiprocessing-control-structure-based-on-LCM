@@ -98,6 +98,7 @@ class IMPControl : public MotionControl
         Matrix<float, 4, 3> K;                     //LF RH LH RH
         Matrix<float, 4, 3> B;
         Matrix<float, 4, 3> M;
+        float impCtlRate;
 
         void impdeliver(vector<float>present_torque);
         void impCtller();
