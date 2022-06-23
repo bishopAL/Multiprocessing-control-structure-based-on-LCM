@@ -88,10 +88,13 @@ class IMPControl : public MotionControl
         Matrix<float, 4, 3> target_pos; // LF RH LH RH ; x y z  in CoM cordinate 
         Matrix<float, 4, 3> target_vel;
         Matrix<float, 4, 3> target_acc; // Force in target position
+        // Vector<float, 3> targetCoMVelocity;  // X, Y , alpha in world cordinate
+        // Vector<float, 3> presentCoMVelocity;  // X, Y , alpha in world cordinate
+        // Matrix<float, 4, 3> targetCoMPosition;  // X, Y , alpha in world cordinate
         Matrix<float, 4, 3> xc_dotdot;
         Matrix<float, 4, 3> xc_dot;
         Matrix<float, 4, 3> xc;
-        Matrix<float, 3, 4> force;              //x y z ; LF RH LH RH
+        Matrix<float, 3, 4> force;              // force feedback   x y z ; LF RH LH RH
         Matrix<float, 4, 1> K;                     //LF RH LH RH
         Matrix<float, 4, 1> B;
         Matrix<float, 4, 1> M;

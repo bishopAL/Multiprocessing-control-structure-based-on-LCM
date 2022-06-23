@@ -259,16 +259,7 @@ IMPControl::IMPControl()
     target_vel.setZero();
     target_acc.setZero();
 }
-/*
-impdeliver();
-imp.impCtller( );
-mc.legCmdPos = imp.xc;
-mc.inverseKinematics();
-for(int i=0; i<3; i++)
-    for(int j=0;j<4;j++)
-        temp_pos[i*4+j] = mc.joinCmdPos(i,j);
-motors.setPosition(temp_pos);
-*/
+//motors.present_torque  ->  force
 void IMPControl::impdeliver(vector<float>present_torque)
 {
     Matrix<float, 3, 4> temp;
@@ -287,4 +278,5 @@ void IMPControl::impCtller()
     xc_dotdot =  target_acc + M.cwiseInverse() * ( -force.transpose() + B.cwiseProduct(target_vel - ftsPstVel) +  K.cwiseProduct(target_pos - ftsPstPos)); //
     xc_dot =  ftsPstVel + xc_dotdot * 0.01;
     xc =  ftsPstPos + (xc_dot * 0.01);
+    legCmdPos = xc;
 }

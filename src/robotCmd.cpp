@@ -21,7 +21,7 @@ using namespace std;
 lcm::LCM Lcm;
 robotCommand::robotCommand rc;
 robotState::robotState rs;
-MotionControl mc;
+//MotionControl mc;
 IMPControl imp;
 
 Matrix<float, 3, 1> force;
@@ -58,22 +58,19 @@ void *robotStateUpdateSend(void *data)
         temp_pos.push_back(0.0);
     usleep(1e6);
     motors.getPosition();
-    //mc initial
+    //imp initial
     float timePeriod = 0.01;
     float timeForGaitPeriod = 0.49;
     Matrix<float, 4, 2> timeForStancePhase = { 0, 0.24, 0.25, 0.49, 0.25, 0.49, 0, 0.24};
     Matrix<float, 4, 3> initPos = {3.0, 0.0, -225.83, 3.0, 0.0, -225.83, -20.0, 0.0, -243.83, -20.0, 0.0, -243.83};
     Vector<float, 3> tCV={1, 0, 0 };// X, Y , alpha 
-    mc.setPhase(timePeriod, timeForGaitPeriod, timeForStancePhase);
-    mc.setInitPos(initPos);
-    mc.setCoMVel(tCV);
+    imp.setPhase(timePeriod, timeForGaitPeriod, timeForStancePhase);
+    imp.setInitPos(initPos);
+    imp.setCoMVel(tCV);
 
-    // mc.updateJointPstPos(motors.present_position);
-    // mc.updateFtsPstPos();
-    // target_pos = mc.ftsPstPos.row(0);
-    // target_vel << 0.0, 0.0, 0.0;
-    // target_acc << 0.0, 0.0, 0.0;
-    // xc_dot << 0.0, 0.0, 0.0;
+    // imp.updateJointPstPos(motors.present_position);
+    // imp.updateFtsPstPos();
+    // target_pos = imp.ftsPstPos.row(0);
     usleep(1e6);
     while(1)
     {
@@ -82,39 +79,38 @@ void *robotStateUpdateSend(void *data)
         motors.getPosition();
         motors.getVelocity();
         // update the data IMP need
-        mc.updateJointPstPos(motors.present_position);
-        mc.updateJointPstVel(motors.present_velocity);
-        mc.updateFtsPstPos();
-        mc.updateJacobians();
-        mc.updateFtsPstVel();
+        imp.updateJointPstPos(motors.present_position);
+        imp.updateJointPstVel(motors.present_velocity);
+        imp.updateFtsPstPos();
+        imp.updateJacobians();
+        imp.updateFtsPstVel();
         
         // for(int i=0; i<3; i++)
         //     tau(i,0) = motors.present_torque[i];
-        // force = mc.jacobian_vector[0].transpose().inverse() * tau;
+        // force = imp.jacobian_vector[0].transpose().inverse() * tau;
         // // xc_dotdot = 0 + M/-1*( - footForce[i][0] + refForce[i] - B * (pstFootVel[i][0] - 0) - K * (pstFootPos[i][0] - targetFootPos(i,0)));
-        // xc_dotdot = 1/M*( -force.transpose() + B * (target_vel - mc.ftsPstVel.row(0)) +  K * (target_pos - mc.ftsPstPos.row(0))); //
-        // xc_dot =  mc.ftsPstVel.row(0) + xc_dotdot * 0.01;
-        // xc =  mc.ftsPstPos.row(0) + (xc_dot * 0.01);
+        // xc_dotdot = 1/M*( -force.transpose() + B * (target_vel - imp.ftsPstVel.row(0)) +  K * (target_pos - imp.ftsPstPos.row(0))); //
+        // xc_dot =  imp.ftsPstVel.row(0) + xc_dotdot * 0.01;
+        // xc =  imp.ftsPstPos.row(0) + (xc_dot * 0.01);
 
-        // mc.legCmdPos.row(0) = xc;
-        // mc.inverseKinematics();
+        // imp.legCmdPos.row(0) = xc;
+        // imp.inverseKinematics();
 
         // for(int i=0; i<3; i++)
-        //     temp_pos[i] = mc.joinCmdPos(0,i);
+        //     temp_pos[i] = imp.joinCmdPos(0,i);
         // motors.setPosition(temp_pos);
 
-        mc.nextStep();
+        imp.nextStep();
 
-        imp.impdeliver(motors.present_torque);  //inheritance mc
+        imp.impdeliver(motors.present_torque);  
         imp.impCtller();
-        mc.legCmdPos = imp.xc;
-        mc.inverseKinematics();
+        imp.inverseKinematics();
         for(int i=0; i<3; i++)
             for(int j=0;j<4;j++)
-                temp_pos[i*4+j] = mc.joinCmdPos(i,j);
+                temp_pos[i*4+j] = imp.joinCmdPos(i,j);
         motors.setPosition(temp_pos);     
 
-        cout<<"xc_dotdot: "<<xc_dotdot<<"; xc_dot: "<<xc_dot<<"; xc: "<<xc<<endl;
+        cout<<"xc_dotdot: "<<imp.xc_dotdot<<"; xc_dot: "<<imp.xc_dot<<"; xc: "<<imp.xc<<endl;
 
         rs.F[0] = 0;
         rs.endPos[0] = 0;
