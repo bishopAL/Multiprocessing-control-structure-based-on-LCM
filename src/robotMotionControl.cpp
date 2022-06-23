@@ -34,12 +34,9 @@ void MotionControl::setInitPos(Matrix<float, 4, 3> initPosition)
     stancePhaseEndPos = initPosition;
     legPresentPos = initPosition;
     legCmdPos = initPosition;
-    targetCoMPosition << 0.0, 0.0, 0.0,
-                                                0.0, 0.0, 0.0,
-                                                0.0, 0.0, 0.0,
-                                                0.0, 0.0, 0.0;
+    targetCoMPosition.setZero();
 }
-
+// set  X, Y , alpha in world cordinate
 void MotionControl::setCoMVel(Vector<float, 3> tCV)
 {
     targetCoMVelocity = tCV;
@@ -50,9 +47,15 @@ void MotionControl::updateJointPstPos(vector<float> jointPos)
     for(int i=0; i<4; i++)
     {
         for(int j=0; j<3; j++)
-        {
             jointPstPos(i,j) = jointPos[i*3 + j];
-        }
+    }
+}
+void MotionControl::updateJointPstVel(vector<float> jointVel)
+{
+    for(int i=0; i<4; i++)
+    {
+        for(int j=0; j<3; j++)
+            jointPstVel(i,j) = jointVel[i*3 + j];
     }
 }
 
@@ -239,4 +242,49 @@ void MotionControl::nextStep()
         timePresent = 0.0;
     }
 
+}
+/////////////////////////////////////////////////////////////////////////////
+//                                          IMPControl
+//////////////////////////////////////////////////////////////////////////////
+
+IMPControl::IMPControl()
+{
+    K<<1000,1000,1000,1000;
+    B<<30,30,30,30;
+    M<<3,3,3,3;
+    xc_dotdot.setZero();
+    xc_dot.setZero();
+    xc.setZero();
+    target_pos.setZero();
+    target_vel.setZero();
+    target_acc.setZero();
+}
+/*
+impdeliver();
+imp.impCtller( );
+mc.legCmdPos = imp.xc;
+mc.inverseKinematics();
+for(int i=0; i<3; i++)
+    for(int j=0;j<4;j++)
+        temp_pos[i*4+j] = mc.joinCmdPos(i,j);
+motors.setPosition(temp_pos);
+*/
+void IMPControl::impdeliver(vector<float>present_torque)
+{
+    Matrix<float, 3, 4> temp;
+    for(int i=0; i<3; i++)
+        for(int j=0;j<4;j++)
+            temp(i ,j ) = present_torque[i*4+j];
+    for (int i=0; i<4; i++)
+        force.col(i) = jacobian_vector[i].transpose().inverse() * temp.col(i);
+    target_pos = legCmdPos;
+    //imp.target_vel = 0;
+    //imp.target_acc = 0; //
+}
+void IMPControl::impCtller()
+{
+    // xc_dotdot = 0 + M/-1*( - footForce[i][0] + refForce[i] - B * (pstFootVel[i][0] - 0) - K * (pstFootPos[i][0] - targetFootPos(i,0)));
+    xc_dotdot =  target_acc + M.cwiseInverse() * ( -force.transpose() + B.cwiseProduct(target_vel - ftsPstVel) +  K.cwiseProduct(target_pos - ftsPstPos)); //
+    xc_dot =  ftsPstVel + xc_dotdot * 0.01;
+    xc =  ftsPstPos + (xc_dot * 0.01);
 }

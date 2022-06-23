@@ -5,8 +5,14 @@
 #include "impPara/impPara.hpp"
 #include <handler.hpp>
 #include <iostream>
+#include <stdio.h>
+#include <stdlib.h>
+#include <sys/time.h>
+#include <sys/mman.h>
+#include <unistd.h>
+#include <pthread.h>
 #include <dynamixel/dynamixel.h>
-#include <robotCmd.h>
+
 
 using namespace std;
 #define THREAD1_ENABLE 1
@@ -35,47 +41,6 @@ float K = 1000;
 float B = 30;
 float M = 3;
 
-IMPControl::IMPControl()
-{
-    K<<1000,1000,1000,1000;
-    B<<30,30,30,30;
-    M<<3,3,3,3;
-    xc_dotdot.setZero();
-    xc_dot.setZero();
-    xc.setZero();
-    target_pos.setZero();
-    target_vel.setZero();
-    target_acc.setZero();
-}
-/*
-impdeliver();
-imp.impCtller( );
-mc.legCmdPos = imp.xc;
-mc.inverseKinematics();
-for(int i=0; i<3; i++)
-    for(int j=0;j<4;j++)
-        temp_pos[i*4+j] = mc.joinCmdPos(i,j);
-motors.setPosition(temp_pos);
-*/
-void impdeliver()
-{
-    Matrix<float, 3, 4> temp;
-    for(int i=0; i<3; i++)
-        for(int j=0;j<4;j++)
-            temp(i ,j ) = motors.present_torque[i*4+j];
-    for (int i=0; i<4; i++)
-        imp.force.col(i) = mc.jacobian_vector[i].transpose().inverse() * temp.col(i);
-    imp.target_pos = mc.legCmdPos;
-    //imp.target_vel = 0;
-    //imp.target_acc = 0; //
-}
-void IMPControl::impCtller()
-{
-    // xc_dotdot = 0 + M/-1*( - footForce[i][0] + refForce[i] - B * (pstFootVel[i][0] - 0) - K * (pstFootPos[i][0] - targetFootPos(i,0)));
-    xc_dotdot =  target_acc + M.cwiseInverse() * ( -force.transpose() + B.cwiseProduct(target_vel - mc.ftsPstVel) +  K.cwiseProduct(target_pos - mc.ftsPstPos)); //
-    xc_dot =  mc.ftsPstVel + xc_dotdot * 0.01;
-    xc =  mc.ftsPstPos + (xc_dot * 0.01);
-}
 
 void *robotCommandUpdate(void *data)
 {
@@ -98,31 +63,27 @@ void *robotStateUpdateSend(void *data)
     float timeForGaitPeriod = 0.49;
     Matrix<float, 4, 2> timeForStancePhase = { 0, 0.24, 0.25, 0.49, 0.25, 0.49, 0, 0.24};
     Matrix<float, 4, 3> initPos = {3.0, 0.0, -225.83, 3.0, 0.0, -225.83, -20.0, 0.0, -243.83, -20.0, 0.0, -243.83};
+    Vector<float, 3> tCV={1, 0, 0 };// X, Y , alpha 
     mc.setPhase(timePeriod, timeForGaitPeriod, timeForStancePhase);
     mc.setInitPos(initPos);
+    mc.setCoMVel(tCV);
 
-    mc.updateJointPstPos(motors.present_position);
-    mc.updateFtsPstPos();
-   
-    target_pos = mc.ftsPstPos.row(0);
-    target_vel << 0.0, 0.0, 0.0;
-    target_acc << 0.0, 0.0, 0.0;
-    xc_dot << 0.0, 0.0, 0.0;
+    // mc.updateJointPstPos(motors.present_position);
+    // mc.updateFtsPstPos();
+    // target_pos = mc.ftsPstPos.row(0);
+    // target_vel << 0.0, 0.0, 0.0;
+    // target_acc << 0.0, 0.0, 0.0;
+    // xc_dot << 0.0, 0.0, 0.0;
     usleep(1e6);
     while(1)
     {
-
+        // get motors data
         motors.getTorque();
         motors.getPosition();
         motors.getVelocity();
-        for(int i=0; i<4; i++)
-        {
-            for(int j=0; j<3; j++)
-            {
-                mc.jointPstPos(i, j) = motors.present_position[j];
-                mc.jointPstVel(i, j) = motors.present_velocity[j];
-            }
-        }
+        // update the data IMP need
+        mc.updateJointPstPos(motors.present_position);
+        mc.updateJointPstVel(motors.present_velocity);
         mc.updateFtsPstPos();
         mc.updateJacobians();
         mc.updateFtsPstVel();
@@ -144,8 +105,8 @@ void *robotStateUpdateSend(void *data)
 
         mc.nextStep();
 
-        impdeliver();
-        imp.impCtller( );
+        imp.impdeliver(motors.present_torque);  //inheritance mc
+        imp.impCtller();
         mc.legCmdPos = imp.xc;
         mc.inverseKinematics();
         for(int i=0; i<3; i++)

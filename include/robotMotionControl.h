@@ -27,8 +27,8 @@ class MotionControl
         float timePresent;  
         float timeOneSwingPeriod;  // The swing time for diag legs
         Matrix<float, 4, 2> timeForStancePhase;  // startTime, endTime: LF, RF, LH, RH
-        Vector<float, 3> targetCoMVelocity;  // X, Y , alpha c in world cordinate
-        Vector<float, 3> presentCoMVelocity;  // X, Y , alpha c in world cordinate
+        Vector<float, 3> targetCoMVelocity;  // X, Y , alpha in world cordinate
+        Vector<float, 3> presentCoMVelocity;  // X, Y , alpha in world cordinate
         Matrix<float, 4, 3> targetCoMPosition;  // X, Y , alpha in world cordinate
         float yawVelocity;   // yaw velocity from imu
         Vector<bool, 4> stanceFlag;  // True, False: LF, RF, LH, RH
@@ -70,13 +70,33 @@ class MotionControl
         float v_leg[4][2];  // the velocity of 4 legs
         float endPosition[4][2];  // the final feet position after one gait cycle
         void setInitPos(Matrix<float, 4, 3> initPosition);
-        void setCoMVel(Vector<float, 3> tCV);
+        void setCoMVel(Vector<float, 3> tCV);   
         void setPhase(float tP, float tFGP, Matrix<float, 4, 2> tFSP);
         void nextStep();
         void updateJointPstPos(vector<float> jointPos);
+        void updateJointPstVel(vector<float> jointVel);
         void updateJacobians();
         void inverseKinematics();   // standing state
         void updateFtsPstPos(); // to update Pos of foot  in shoulder coordinate
         void updateFtsPstVel(); // to update Vel of foot  in shoulder coordinate
         MotionControl();
+};
+
+class IMPControl : public MotionControl
+{
+    public:
+        Matrix<float, 4, 3> target_pos; // LF RH LH RH ; x y z  in CoM cordinate 
+        Matrix<float, 4, 3> target_vel;
+        Matrix<float, 4, 3> target_acc; // Force in target position
+        Matrix<float, 4, 3> xc_dotdot;
+        Matrix<float, 4, 3> xc_dot;
+        Matrix<float, 4, 3> xc;
+        Matrix<float, 3, 4> force;              //x y z ; LF RH LH RH
+        Matrix<float, 4, 1> K;                     //LF RH LH RH
+        Matrix<float, 4, 1> B;
+        Matrix<float, 4, 1> M;
+
+        void impdeliver(vector<float>present_torque);
+        void impCtller();
+        IMPControl();
 };
