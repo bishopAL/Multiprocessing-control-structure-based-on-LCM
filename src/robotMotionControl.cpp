@@ -249,9 +249,9 @@ void MotionControl::nextStep()
 
 IMPControl::IMPControl()
 {
-    K<<1000,1000,1000,1000;
-    B<<30,30,30,30;
-    M<<3,3,3,3;
+    K<<1000,1000,1000,1000,1000,1000,1000,1000,1000,1000,1000,1000;
+    B<<30,30,30,30,30,30,30,30,30,30,30,30;
+    M<<3,3,3,3,3,3,3,3,3,3,3,3;
     xc_dotdot.setZero();
     xc_dot.setZero();
     xc.setZero();
@@ -269,14 +269,14 @@ void IMPControl::impdeliver(vector<float>present_torque)
     for (int i=0; i<4; i++)
         force.col(i) = jacobian_vector[i].transpose().inverse() * temp.col(i);
     target_pos = legCmdPos;
-    //imp.target_vel = 0;
+    //imp.target_ve4l = 0;
     //imp.target_acc = 0; //
 }
 void IMPControl::impCtller()
 {
     // xc_dotdot = 0 + M/-1*( - footForce[i][0] + refForce[i] - B * (pstFootVel[i][0] - 0) - K * (pstFootPos[i][0] - targetFootPos(i,0)));
     xc_dotdot =  target_acc + M.cwiseInverse() * ( -force.transpose() + B.cwiseProduct(target_vel - ftsPstVel) +  K.cwiseProduct(target_pos - ftsPstPos)); //
-    xc_dot =  ftsPstVel + xc_dotdot * 0.01;
-    xc =  ftsPstPos + (xc_dot * 0.01);
+    xc_dot =  ftsPstVel + xc_dotdot * (1/impCtlRate);
+    xc =  ftsPstPos + 0.5 * (xc_dot * (1/impCtlRate));
     legCmdPos = xc;
 }
