@@ -11,7 +11,16 @@
 #include <unistd.h>
 #include <pthread.h>
 
+#include <math.h>
+#include <Eigen/Core>
+#include <Eigen/Dense>
+#include <Eigen/Eigen>
+#include <Eigen/Sparse>
+#include <Eigen/SVD>
+
 using namespace std;
+using namespace Eigen;
+
 #define THREAD1_ENABLE 1
 #define THREAD2_ENABLE 1
 

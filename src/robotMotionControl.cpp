@@ -50,7 +50,7 @@ void MotionControl::updateJointPstPos(vector<float> jointPos)
             jointPstPos(i,j) = jointPos[i*3 + j];
     }
 }
-void MotionControl::updateJointPstVel(vector<float> jointVel)
+void MotionControl::     updateJointPstVel(vector<float> jointVel)
 {
     for(int i=0; i<4; i++)
     {
@@ -249,9 +249,9 @@ void MotionControl::nextStep()
 
 IMPControl::IMPControl()
 {
-    K<<1000,1000,1000,1000,1000,1000,1000,1000,1000,1000,1000,1000;
-    B<<30,30,30,30,30,30,30,30,30,30,30,30;
-    M<<3,3,3,3,3,3,3,3,3,3,3,3;
+    K.setConstant(1000);
+    B.setConstant(30);
+    M.setConstant(3);
     xc_dotdot.setZero();
     xc_dot.setZero();
     xc.setZero();
@@ -275,7 +275,7 @@ void IMPControl::impdeliver(vector<float>present_torque)
 void IMPControl::impCtller()
 {
     // xc_dotdot = 0 + M/-1*( - footForce[i][0] + refForce[i] - B * (pstFootVel[i][0] - 0) - K * (pstFootPos[i][0] - targetFootPos(i,0)));
-    xc_dotdot =  target_acc + M.cwiseInverse() * ( -force.transpose() + B.cwiseProduct(target_vel - ftsPstVel) +  K.cwiseProduct(target_pos - ftsPstPos)); //
+    xc_dotdot =  target_acc +M.cwiseInverse().cwiseProduct( ( -force.transpose() + B.cwiseProduct(target_vel - ftsPstVel) +  K.cwiseProduct(target_pos - ftsPstPos)) ); //
     xc_dot =  ftsPstVel + xc_dotdot * (1/impCtlRate);
     xc =  ftsPstPos + 0.5 * (xc_dot * (1/impCtlRate));
     legCmdPos = xc;
