@@ -95,6 +95,7 @@ class IMPControl : public MotionControl
         Matrix<float, 4, 3> xc_dot;
         Matrix<float, 4, 3> xc;
         Matrix<float, 3, 4> force;              // force feedback   x y z ; LF RH LH RH
+        Matrix<float, 4, 3> target_force;
         Matrix<float, 4, 3> K;                     //LF RH LH RH
         Matrix<float, 4, 3> B;
         Matrix<float, 4, 3> M;
