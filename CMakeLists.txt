@@ -9,6 +9,7 @@ link_directories("/usr/local/lib")
 include_directories(${PROJECT_SOURCE_DIR}/include)
 
 message("CMAKE_HOST_SYSTEM_NAME: ${CMAKE_HOST_SYSTEM_NAME} ")
+message("CMAKE_HOST_SYSTEM_PROCESSOR: ${CMAKE_HOST_SYSTEM_PROCESSOR}")
 if(CMAKE_HOST_SYSTEM_NAME MATCHES "APPLE")
 set( DYNAMIXELLIB "dxl_mac_cpp")
 elseif(CMAKE_HOST_SYSTEM_PROCESSOR MATCHES "x86_64")
