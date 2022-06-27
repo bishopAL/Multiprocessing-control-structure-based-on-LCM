@@ -10,13 +10,7 @@ include_directories(${PROJECT_SOURCE_DIR}/include)
 
 message("CMAKE_HOST_SYSTEM_NAME: ${CMAKE_HOST_SYSTEM_NAME} ")
 message("CMAKE_HOST_SYSTEM_PROCESSOR: ${CMAKE_HOST_SYSTEM_PROCESSOR}")
-if(CMAKE_HOST_SYSTEM_NAME MATCHES "APPLE")
-set( DYNAMIXELLIB "dxl_mac_cpp")
-elseif(CMAKE_HOST_SYSTEM_PROCESSOR MATCHES "x86_64")
-set( DYNAMIXELLIB "dxl_x64_cpp")
-else()
-set( DYNAMIXELLIB "dxl_sbc_cpp")
-endif()
+
 # set(EXECUTABLE_OUTPUT_PATH ${PROJECT_SOURCE_DIR}/bin)
 set(LIBRARY_OUTPUT_PATH ${PROJECT_SOURCE_DIR}/lib)
 
@@ -26,17 +20,20 @@ target_include_directories(dynamixel_lib
         ${PROJECT_SOURCE_DIR}/include
 )
 
+if(CMAKE_HOST_SYSTEM_NAME MATCHES "Darwin")
+set( DYNAMIXELLIB "dynamixel_lib dxl_mac_cpp")
+elseif(CMAKE_HOST_SYSTEM_PROCESSOR MATCHES "x86_64")
+set( DYNAMIXELLIB "dynamixel_lib dxl_x64_cpp")
+else()
+set( DYNAMIXELLIB "dynamixel_lib dxl_sbc_cpp")
+endif()
+
 add_executable(stateEst src/stateEst.cpp)
 target_link_libraries(stateEst lcm pthread)
 
-<<<<<<< HEAD
-add_executable(robotCmd src/robotCmd.cpp src/robotMotionControl.cpp src/dynamixel.cpp)
-target_link_libraries(robotCmd lcm pthread dxl_mac_cpp)
-=======
 add_executable(robotCmd src/robotCmd.cpp src/robotMotionControl.cpp )   #src/dynamixel.cpp
-target_link_libraries(robotCmd lcm pthread dynamixel_lib ${DYNAMIXELLIB})   #  must in order: dynamixel_lib dxl_sbc_cpp
+target_link_libraries(robotCmd lcm pthread ${DYNAMIXELLIB})   #  must in order: dynamixel_lib dxl_sbc_cpp
 #dxl_x64_cpp
->>>>>>> fd8a5968a6e49ea4603e2c61fba7ffc9cd72d272
 
 add_executable(impCtl src/impCtl.cpp)
 target_link_libraries(impCtl lcm pthread)
