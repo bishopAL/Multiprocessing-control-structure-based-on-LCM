@@ -61,10 +61,12 @@ void *robotStateUpdateSend(void *data)
     //imp initial
     float timePeriod = 0.01;
     float timeForGaitPeriod = 0.49;
-    Matrix<float, 4, 2> timeForStancePhase = { 0, 0.24, 0.25, 0.49, 0.25, 0.49, 0, 0.24};
-    Matrix<float, 4, 3> initPos = {3.0, 0.0, -225.83, 3.0, 0.0, -225.83, -20.0, 0.0, -243.83, -20.0, 0.0, -243.83};
+    Matrix<float, 4, 2> timeForStancePhase ;
+    Matrix<float, 4, 3> initPos;
     Vector<float, 3> tCV={1, 0, 0 };// X, Y , alpha 
+    timeForStancePhase << 0, 0.24, 0.25, 0.49, 0.25, 0.49, 0, 0.24;
     imp.setPhase(timePeriod, timeForGaitPeriod, timeForStancePhase);
+    initPos << 3.0, 0.0, -225.83, 3.0, 0.0, -225.83, -20.0, 0.0, -243.83, -20.0, 0.0, -243.83;
     imp.setInitPos(initPos);
     imp.setCoMVel(tCV);
 
