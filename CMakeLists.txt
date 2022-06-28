@@ -21,19 +21,18 @@ target_include_directories(dynamixel_lib
 )
 
 if(CMAKE_HOST_SYSTEM_NAME MATCHES "Darwin")
-set( DYNAMIXELLIB "dynamixel_lib dxl_mac_cpp")
+set( DYNAMIXELLIB "dxl_mac_cpp")
 elseif(CMAKE_HOST_SYSTEM_PROCESSOR MATCHES "x86_64")
-set( DYNAMIXELLIB "dynamixel_lib dxl_x64_cpp")
+set( DYNAMIXELLIB "dxl_x64_cpp")
 else()
-set( DYNAMIXELLIB "dynamixel_lib dxl_sbc_cpp")
+set( DYNAMIXELLIB "dxl_sbc_cpp")
 endif()
 
 add_executable(stateEst src/stateEst.cpp)
 target_link_libraries(stateEst lcm pthread)
 
 add_executable(robotCmd src/robotCmd.cpp src/robotMotionControl.cpp )   #src/dynamixel.cpp
-target_link_libraries(robotCmd lcm pthread ${DYNAMIXELLIB})   #  must in order: dynamixel_lib dxl_sbc_cpp
-#dxl_x64_cpp
+target_link_libraries(robotCmd lcm pthread dynamixel_lib ${DYNAMIXELLIB})   # lib must in order: dynamixel_lib dxl_sbc_cpp 
 
 add_executable(impCtl src/impCtl.cpp)
 target_link_libraries(impCtl lcm pthread)

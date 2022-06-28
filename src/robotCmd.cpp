@@ -27,9 +27,14 @@ IMPControl imp;
 Matrix<float, 3, 1> force;
 Matrix<float, 3, 1> tau;
 ImpParaHandler ipHandle;
-vector<int> ID = {3, 4, 5};
-vector<float> start_pos = {0.0, 0.0, 0.0};
-DxlAPI motors("/dev/ttyUSB0", 3000000, ID, 0);
+vector<int> ID = {0,1,2,3, 4, 5,6,7,8,9,10,11};
+vector<float> start_pos = {
+ 0.0, 0.0, 0.0
+,0.0, 0.0, 0.0
+,0.0, 0.0, 0.0
+,0.0, 0.0, 0.0
+};
+DxlAPI motors("/dev/ttyAMA0", 3000000, ID, 0);
 Matrix<float, 1, 3> target_pos;
 Matrix<float, 1, 3> target_vel;
 Matrix<float, 1, 3> target_acc;
