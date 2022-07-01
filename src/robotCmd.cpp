@@ -27,21 +27,21 @@ IMPControl imp;
 Matrix<float, 3, 1> force;
 Matrix<float, 3, 1> tau;
 ImpParaHandler ipHandle;
-vector<int> ID = {0,1,2,3, 4, 5,6,7,8,9,10,11};
+vector<int> ID = {10,11};//0,1,2,3, 4, 5,6,7,8,9,
 vector<float> start_pos = {
  0.0, 0.0, 0.0
 ,0.0, 0.0, 0.0
 ,0.0, 0.0, 0.0
 ,0.0, 0.0, 0.0
 };
-DxlAPI motors("/dev/ttyAMA0", 3000000, ID, 0);
+DxlAPI motors("/dev/ttyAMA0", 3000000, ID, 1);
 Matrix<float, 1, 3> target_pos;
 Matrix<float, 1, 3> target_vel;
 Matrix<float, 1, 3> target_acc;
 Matrix<float, 1, 3> xc_dotdot;
 Matrix<float, 1, 3> xc_dot;
 Matrix<float, 1, 3> xc;
-vector<float> temp_pos;
+vector<float> temp_pos,temp_pos2;
 float K = 1000;
 float B = 30;
 float M = 3;
@@ -58,7 +58,7 @@ void *robotStateUpdateSend(void *data)
     //motors initial
     motors.setOperatingMode(3);  //3 position control; 0 current control
     motors.torqueEnable();
-    motors.setPosition(start_pos);
+    //motors.setPosition(start_pos);
     for(int i=0; i<12; i++)
         temp_pos.push_back(0.0);
     usleep(1e6);
@@ -75,12 +75,15 @@ void *robotStateUpdateSend(void *data)
     imp.setInitPos(initPos);
     imp.setCoMVel(tCV);
 
+temp_pos2.push_back(0.0);
+temp_pos2.push_back(0.0);
     // imp.updateJointPstPos(motors.present_position);
     // imp.updateFtsPstPos();
     // target_pos = imp.ftsPstPos.row(0);
     usleep(1e6);
     while(1)
     {
+        /*
         // get motors data
         motors.getTorque();
         motors.getPosition();
@@ -123,7 +126,15 @@ void *robotStateUpdateSend(void *data)
         rs.endPos[0] = 0;
         rs.endVel[0] = 0;
         Lcm.publish("ROBOTSTATE", &rs);
-         usleep(1e3);
+        */
+           motors.getPosition();
+    for(int i=0; i<2;i++)
+    {
+        temp_pos2[i]=motors.present_position[i]+0.3;
+        cout<<"t:"<<temp_pos2[i]<<endl;
+    }
+    motors.setPosition(temp_pos2);
+         usleep(1e6);
     }
 }
 

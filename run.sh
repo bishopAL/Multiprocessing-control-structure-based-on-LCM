@@ -2,5 +2,6 @@
 cd build
 cmake ..
 make
-./impCtl &
-./stateEst &
+# ./impCtl &
+# ./stateEst &
+./robotCmd
