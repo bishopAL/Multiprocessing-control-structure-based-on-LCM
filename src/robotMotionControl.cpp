@@ -14,8 +14,8 @@ MotionControl::MotionControl()
     L1 = 33.5 / 1000;
     L2 = 47.5 / 1000;
     L3 = 23.1 / 1000;
-    width = 132.0;
-    length = 172.0;  
+    width = 132.0 / 1000;
+    length = 172.0 / 1000;  
     shoulderPos << width/2, length/2, width/2, -length/2, -width/2, length/2, -width/2, -length/2;  // X-Y: LF, RF, LH, RH
 }
 
