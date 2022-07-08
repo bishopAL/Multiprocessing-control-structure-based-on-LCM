@@ -12,7 +12,7 @@ MotionControl::MotionControl()
     timePresentForSwing << 0.0, 0.0, 0.0, 0.0;
     targetCoMVelocity << 0.0, 0.0, 0.0;
     L1 = 33.5 / 1000;
-    L2 = 47.5 / 1000;
+    L2 = -47.5 / 1000;
     L3 = 23.1 / 1000;
     width = 132.0 / 1000;
     length = 172.0 / 1000;  
