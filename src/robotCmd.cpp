@@ -21,7 +21,7 @@ using namespace std;
 #define THREAD2_ENABLE 1
 //  1:  Motor angle
 //  2:  Foot end position
-#define INIMODE 2
+#define INIMODE 1
 
 lcm::LCM Lcm;
 robotCommand::robotCommand rc;
@@ -45,10 +45,13 @@ Matrix<float, 1, 3> target_acc;
 Matrix<float, 1, 3> xc_dotdot;
 Matrix<float, 1, 3> xc_dot;
 Matrix<float, 1, 3> xc;
-vector<float> temp_pos,temp_pos2;
-float K = 1000;
-float B = 30;
-float M = 3;
+vector<float> temp_pos(12);
+
+float TimePeriod = 0.01;
+float TimeForGaitPeriod = 0.49;
+Matrix<float, 4, 2>TimeForStancePhase ;
+Matrix<float, 4, 3> InitPos;
+Vector<float, 3> TCV={0, 0, 0 };// X, Y , alpha 
 
 void string2float(string add, float* dest)
 {
@@ -66,7 +69,7 @@ void string2float(string add, float* dest)
     {        
         dest[i++] = stof(char_float);
         // printf ("%s",char_float);
-       // cout<<'|'<<dest[i-1]<<endl;
+        //cout<<'|'<<dest[i-1]<<endl;
         char_float=strtok(NULL, a);
     }
     inidata.close();
@@ -85,46 +88,50 @@ void *robotStateUpdateSend(void *data)
     motors.torqueEnable();
     motors.getPosition();
     usleep(1e6);
-    for(int i=0; i<12; i++)
-    {
-        temp_pos.push_back(0.0);
-        temp_pos2.push_back(0.0);
-        //cout<<motors.present_position[i]<<endl;
-    }
 #if(INIMODE==1)
-    vector<float> init_Motor_angle;
+    vector<float> init_Motor_angle(12);
     float float_init_Motor_angle[12];
-    string2float("../include/init_Motor_angle.csv", float_start_pos);//Motor angle     rad
-    for(int i=0;i<12;i++)
-    {
-        init_Motor_angle[i] = float_init_Motor_angle[i];
-        //cout<<init_Motor_angle[i]<<endl;
-    }
+    string2float("../include/init_Motor_angle.csv", float_init_Motor_angle);//Motor angle     d
+    //cout<<"____________"<<endl;
+    for(int i=0; i<4; i++)
+        for(int j=0;j<3;j++)
+        {
+            float_init_Motor_angle[i*3+j] = float_init_Motor_angle[i*3+j] * 3.1416/180; //to rad
+            init_Motor_angle[i*3+j] = float_init_Motor_angle[i*3+j];      //vector
+            imp.joinCmdPos(i,j) = float_init_Motor_angle[i*3+j];            //imp.forwardKinematics
+            InitPos(i,j) = float_init_Motor_angle[i*3+j];                               //Matrix
+            //cout<<init_Motor_angle[i*3+j]<<endl;
+        }
+    imp.forwardKinematics();
+    imp.setInitPos(InitPos);
+    // for(int i=0; i<4; i++)
+    //     for(int j=0;j<3;j++)
+    //         cout<<"legCmdPos_"<<i*3+j<<"  "<<imp.legCmdPos(i,j)<<endl ;
+
     motors.setPosition(init_Motor_angle);
 #endif    
     
     
     //imp initial
-    float timePeriod = 0.01;
-    float timeForGaitPeriod = 0.49;
-    Matrix<float, 4, 2> timeForStancePhase ;
-    Matrix<float, 4, 3> initPos;
-    Vector<float, 3> tCV={0, 0, 0 };// X, Y , alpha 
-    timeForStancePhase << 0, 0.24, 0.25, 0.49, 0.25, 0.49, 0, 0.24;
-    imp.setPhase(timePeriod, timeForGaitPeriod, timeForStancePhase);
-    //initPos << 3.0, 0.0, -225.83, 3.0, 0.0, -225.83, -20.0, 0.0, -243.83, -20.0, 0.0, -243.83; //xyz
+    TimePeriod = 0.01;
+    TimeForGaitPeriod = 0.49;
+    TCV<< 1, 0, 0;// X, Y , alpha 
+    TimeForStancePhase << 0, 0.24, 0.25, 0.49, 0.25, 0.49, 0, 0.24;
+    imp.setPhase(TimePeriod, TimeForGaitPeriod, TimeForStancePhase);
+    //InitPos << 3.0, 0.0, -225.83, 3.0, 0.0, -225.83, -20.0, 0.0, -243.83, -20.0, 0.0, -243.83; //xyz
 #if(INIMODE==2)
     float  float_initPos[12];
-    string2float("../include/initPos.csv", float_initPos);//Foot end position
+    string2float("../include/InitPos.csv", float_initPos);//Foot end position
     for(int i=0; i<4; i++)
         for(int j=0;j<3;j++)
         {
-            initPos(i, j) = float_initPos[i*3+j];
-            //cout<<initPos(i, j)<<endl;
+            InitPos(i, j) = float_initPos[i*3+j];
+            //cout<<InitPos(i, j)<<endl;
         }
+    imp.setInitPos(InitPos);
 #endif
-    imp.setInitPos(initPos);
-    imp.setCoMVel(tCV);
+
+    imp.setCoMVel(TCV);
     imp.inverseKinematics();
 #if(INIMODE==2)  
     for(int i=0; i<4; i++)
@@ -185,7 +192,7 @@ void *robotStateUpdateSend(void *data)
                 cout<<"temp_pos_"<<i*3+j<<"  "<<temp_pos[i*3+j] <<endl;
             }
             cout<<'\n'<<endl;
-        motors.setPosition(temp_pos);     
+        //motors.setPosition(temp_pos);     
 
         //cout<<"xc_dotdot: "<<imp.xc_dotdot<<"; xc_dot: "<<imp.xc_dot<<"; xc: "<<imp.xc<<endl;
         

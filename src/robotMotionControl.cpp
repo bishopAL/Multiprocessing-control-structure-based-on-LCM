@@ -132,6 +132,50 @@ void MotionControl::updateFtsPstVel()
     }
 }
 
+void MotionControl::forwardKinematics()
+{
+    for(uint8_t legNum=0; legNum<4; legNum++)  // LF RF LH RH
+    {
+        float th0,th1,th2;
+        float factor_y, factor_x,  factor_z, factor_sin;  
+        th0 =  joinCmdPos(legNum,0);
+        th1 =  joinCmdPos(legNum,1);
+        th2 =  joinCmdPos(legNum,2);
+        if(legNum==0 )              //LF  
+        {
+            factor_x = 1;
+            factor_y = 1;
+            factor_z = 1;
+            factor_sin = 1;
+        }
+        else if(legNum==1 )     
+        {
+            factor_x = 1;
+            factor_y = -1;
+            factor_z = -1;
+            factor_sin = -1;
+        }
+        else if(legNum==2 )     
+        {
+            factor_x = 1;
+            factor_y = 1;
+            factor_z = -1;
+            factor_sin = -1;
+        }
+        else if(legNum==3 )     
+        {
+            factor_x = 1;
+            factor_y = -1;
+            factor_z = 1;
+            factor_sin = 1;
+        }
+        legCmdPos(legNum,0) = factor_x * (-factor_sin * L1 * sin(th1) + L2 * cos(th1 + th2));
+        legCmdPos(legNum,1) = factor_y * ((( L1 * cos(th1) + factor_sin * L2 * sin(th1 + th2) ) * cos(th0) + factor_sin * L3 * sin(th0)));
+        legCmdPos(legNum,2) = factor_z * (( L1 * cos(th1) + factor_sin * L2 * sin(th1 + th2) ) * sin(th0) - factor_sin * L3 * cos(th0));
+    }
+
+}
+
 void MotionControl::inverseKinematics()
 {
     for(uint8_t legNum=0; legNum<4; legNum++)  // LF RF LH RH
@@ -145,7 +189,7 @@ void MotionControl::inverseKinematics()
               factor_x= 1;
               factor_y= 1;
           }
-          if(legNum==1)
+          else if(legNum==1)
           {
               factor_xc= -1;
               factor_yc= 1;
@@ -153,7 +197,7 @@ void MotionControl::inverseKinematics()
               factor_x= 1;
               factor_y= -1;
           }
-          if(legNum==2)
+          else if(legNum==2)
           {
               factor_xc= -1;
               factor_yc= 1;
@@ -161,7 +205,7 @@ void MotionControl::inverseKinematics()
               factor_x= 1;
               factor_y= 1;
           }
-          if(legNum==3)
+          else if(legNum==3)
           {
               factor_xc= 1;
               factor_yc= 1;
