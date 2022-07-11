@@ -12,7 +12,7 @@ MotionControl::MotionControl()
     timePresentForSwing << 0.0, 0.0, 0.0, 0.0;
     targetCoMVelocity << 0.0, 0.0, 0.0;
     L1 = 33.5 / 1000;
-    L2 = -47.5 / 1000;
+    L2 = 47.5 / 1000;
     L3 = 23.1 / 1000;
     width = 132.0 / 1000;
     length = 172.0 / 1000;  
@@ -139,40 +139,40 @@ void MotionControl::inverseKinematics()
           float factor_y, factor_x, factor_xc, factor_yc, factor_zc;  // factor for x/y; factor for whole formula
           if(legNum==0)
           {
-              factor_xc=-1;
-              factor_yc=1;
-              factor_zc=1;
-              factor_x=1;
-              factor_y=1;
+              factor_xc= 1;
+              factor_yc= -1;
+              factor_zc= -1;
+              factor_x= 1;
+              factor_y= 1;
           }
           if(legNum==1)
           {
-              factor_xc=1;
-              factor_yc=-1;
-              factor_zc=-1;
-              factor_x=1;
-              factor_y=-1;
+              factor_xc= -1;
+              factor_yc= 1;
+              factor_zc= 1;
+              factor_x= 1;
+              factor_y= -1;
           }
           if(legNum==2)
           {
-              factor_xc=-1;
-              factor_yc=-1;
-              factor_zc=-1;
-              factor_x=-1;
-              factor_y=1;
+              factor_xc= -1;
+              factor_yc= 1;
+              factor_zc= -1;
+              factor_x= 1;
+              factor_y= 1;
           }
           if(legNum==3)
           {
-              factor_xc=1;
-              factor_yc=1;
-              factor_zc=1;
-              factor_x=-1;
-              factor_y=-1;
+              factor_xc= 1;
+              factor_yc= 1;
+              factor_zc= 1;
+              factor_x= 1;
+              factor_y= -1;
           }
-          joinCmdPos(legNum,0) = -factor_xc * (asin(L3 / sqrt( legCmdPos(legNum,2)*legCmdPos(legNum,2) + legCmdPos(legNum,1)*legCmdPos(legNum,1) )) + atan2(legCmdPos(legNum,2),factor_y * legCmdPos(legNum,1)) );     
-          joinCmdPos(legNum,1) = -factor_yc * (asin((legCmdPos(legNum,1) * legCmdPos(legNum,1) + legCmdPos(legNum,0) * legCmdPos(legNum,0) + legCmdPos(legNum,2) * legCmdPos(legNum,2) + L1 * L1 - L2 * L2 - L3 * L3) / ( 2 * L1 * sqrt (legCmdPos(legNum,1) * legCmdPos(legNum,1) +  legCmdPos(legNum,0) * legCmdPos(legNum,0) + legCmdPos(legNum,2) * legCmdPos(legNum,2) - L3 * L3)))
+          joinCmdPos(legNum,0) = factor_xc * (asin(L3 / sqrt( legCmdPos(legNum,2)*legCmdPos(legNum,2) + legCmdPos(legNum,1)*legCmdPos(legNum,1) )) + atan2(legCmdPos(legNum,2),factor_y * legCmdPos(legNum,1)) );     
+          joinCmdPos(legNum,1) = factor_yc * (asin((legCmdPos(legNum,1) * legCmdPos(legNum,1) + legCmdPos(legNum,0) * legCmdPos(legNum,0) + legCmdPos(legNum,2) * legCmdPos(legNum,2) + L1 * L1 - L2 * L2 - L3 * L3) / ( 2 * L1 * sqrt (legCmdPos(legNum,1) * legCmdPos(legNum,1) +  legCmdPos(legNum,0) * legCmdPos(legNum,0) + legCmdPos(legNum,2) * legCmdPos(legNum,2) - L3 * L3)))
                   - atan2(sqrt(legCmdPos(legNum,1) * legCmdPos(legNum,1) + legCmdPos(legNum,2) * legCmdPos(legNum,2) - L3 * L3) , factor_x * legCmdPos(legNum,0)));
-          joinCmdPos(legNum,2) = -factor_zc * asin((L1 * L1 + L2 * L2 + L3 * L3 - legCmdPos(legNum,1) * legCmdPos(legNum,1) - legCmdPos(legNum,0) * legCmdPos(legNum,0) - legCmdPos(legNum,2) * legCmdPos(legNum,2)) / (2 * L1 * L2));
+          joinCmdPos(legNum,2) = factor_zc * asin((L1 * L1 + L2 * L2 + L3 * L3 - legCmdPos(legNum,1) * legCmdPos(legNum,1) - legCmdPos(legNum,0) * legCmdPos(legNum,0) - legCmdPos(legNum,2) * legCmdPos(legNum,2)) / (2 * L1 * L2));
         }
 }
 
@@ -218,10 +218,10 @@ void MotionControl::nextStep()
                 legCmdPos(legNum, pos) = legCmdPos(legNum, pos) - swingPhaseVelocity(pos) * timePeriod;
             
             if( ( timePresentForSwing(legNum) - (timeForGaitPeriod - (timeForStancePhase(legNum,1) - timeForStancePhase(legNum,0)))/2 ) > 1e-4)
-                legCmdPos(legNum, 2) -= 3.0;
+                legCmdPos(legNum, 2) -= 3.0/1000;
             if( ( timePresentForSwing(legNum) - (timeForGaitPeriod - (timeForStancePhase(legNum,1) - timeForStancePhase(legNum,0)))/2 ) < -1e-4 
                 && timePresentForSwing(legNum) > 1e-4)
-                legCmdPos(legNum, 2) += 3.0;
+                legCmdPos(legNum, 2) += 3.0/1000;
             stanceFlag(legNum) = false;
         }
     }

@@ -33,14 +33,12 @@ Matrix<float, 3, 1> force;
 Matrix<float, 3, 1> tau;
 ImpParaHandler ipHandle;
 vector<int> ID = {
-0,1,2//,
-//3, 4, 5,
-// 6,7,8
-// ,9,10,11
+0,1,2,
+3, 4, 5,
+6,7,8
+,9,10,11
 };
-vector<float> start_pos;
-
-DxlAPI motors("/dev/ttyAMA0", 3000000, ID, 1);  //3000000  cannot hold 6 legs
+DxlAPI motors("/dev/ttyAMA0", 115200, ID, 1);  //3000000  cannot hold 6 legs
 Matrix<float, 1, 3> target_pos;
 Matrix<float, 1, 3> target_vel;
 Matrix<float, 1, 3> target_acc;
@@ -68,7 +66,7 @@ void string2float(string add, float* dest)
     {        
         dest[i++] = stof(char_float);
         // printf ("%s",char_float);
-        // cout<<'|'<<(*dest)[i-1]<<endl;
+       // cout<<'|'<<dest[i-1]<<endl;
         char_float=strtok(NULL, a);
     }
     inidata.close();
@@ -94,14 +92,15 @@ void *robotStateUpdateSend(void *data)
         //cout<<motors.present_position[i]<<endl;
     }
 #if(INIMODE==1)
-    float float_start_pos[12];
-    string2float("../include/start_pos.csv", float_start_pos);//Motor angle     rad
+    vector<float> init_Motor_angle;
+    float float_init_Motor_angle[12];
+    string2float("../include/init_Motor_angle.csv", float_start_pos);//Motor angle     rad
     for(int i=0;i<12;i++)
     {
-        start_pos[i] = float_start_pos[i];
-        cout<<start_pos[i]<<endl;
+        init_Motor_angle[i] = float_init_Motor_angle[i];
+        //cout<<init_Motor_angle[i]<<endl;
     }
-    motors.setPosition(start_pos);
+    motors.setPosition(init_Motor_angle);
 #endif    
     
     
@@ -110,7 +109,7 @@ void *robotStateUpdateSend(void *data)
     float timeForGaitPeriod = 0.49;
     Matrix<float, 4, 2> timeForStancePhase ;
     Matrix<float, 4, 3> initPos;
-    Vector<float, 3> tCV={1, 0, 0 };// X, Y , alpha 
+    Vector<float, 3> tCV={0, 0, 0 };// X, Y , alpha 
     timeForStancePhase << 0, 0.24, 0.25, 0.49, 0.25, 0.49, 0, 0.24;
     imp.setPhase(timePeriod, timeForGaitPeriod, timeForStancePhase);
     //initPos << 3.0, 0.0, -225.83, 3.0, 0.0, -225.83, -20.0, 0.0, -243.83, -20.0, 0.0, -243.83; //xyz
@@ -121,7 +120,7 @@ void *robotStateUpdateSend(void *data)
         for(int j=0;j<3;j++)
         {
             initPos(i, j) = float_initPos[i*3+j];
-            cout<<initPos(i, j)<<endl;
+            //cout<<initPos(i, j)<<endl;
         }
 #endif
     imp.setInitPos(initPos);
@@ -131,10 +130,13 @@ void *robotStateUpdateSend(void *data)
     for(int i=0; i<4; i++)
         for(int j=0;j<3;j++)
         {
+           
             temp_pos[i*3+j] = imp.joinCmdPos(i,j);
             cout<<"temp_pos:"<<temp_pos[i*3+j] <<endl;
+            if( isnanf(temp_pos[i*3+j]) )
+                temp_pos[i*3+j] = 0;
         }
-    //motors.setPosition(temp_pos);     
+    motors.setPosition(temp_pos);     
 #endif
 
 
@@ -144,7 +146,7 @@ void *robotStateUpdateSend(void *data)
     usleep(1e6);
     while(1)
     {
-        /*
+        
         // get motors data
         motors.getTorque();
         motors.getPosition();
@@ -173,16 +175,20 @@ void *robotStateUpdateSend(void *data)
 
         imp.nextStep();
 
-        imp.impdeliver(motors.present_torque);  
-        imp.impCtller();
+        // imp.impdeliver(motors.present_torque);  
+        // imp.impCtller();
         imp.inverseKinematics();
         for(int i=0; i<4; i++)
             for(int j=0;j<3;j++)
+            {
                 temp_pos[i*3+j] = imp.joinCmdPos(i,j);
-        //motors.setPosition(temp_pos);     
+                cout<<"temp_pos_"<<i*3+j<<"  "<<temp_pos[i*3+j] <<endl;
+            }
+            cout<<'\n'<<endl;
+        motors.setPosition(temp_pos);     
 
         //cout<<"xc_dotdot: "<<imp.xc_dotdot<<"; xc_dot: "<<imp.xc_dot<<"; xc: "<<imp.xc<<endl;
-        */
+        
 
        //test time
     //    struct timeval startTime, endTime1,endTime2;
