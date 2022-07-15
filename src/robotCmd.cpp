@@ -33,12 +33,12 @@ Matrix<float, 3, 1> force;
 Matrix<float, 3, 1> tau;
 ImpParaHandler ipHandle;
 vector<int> ID = {
-0,1,2,
+// 0,1,2,
 3, 4, 5,
-6,7,8
-,9,10,11
+// 6,7,8
+// ,9,10,11
 };
-DxlAPI motors("/dev/ttyAMA0", 115200, ID, 1);  //3000000  cannot hold 6 legs
+DxlAPI motors("/dev/ttyAMA0", 3000000, ID, 1);  //3000000  cannot hold 6 legs
 Matrix<float, 1, 3> target_pos;
 Matrix<float, 1, 3> target_vel;
 Matrix<float, 1, 3> target_acc;
@@ -99,11 +99,10 @@ void *robotStateUpdateSend(void *data)
             float_init_Motor_angle[i*3+j] = float_init_Motor_angle[i*3+j] * 3.1416/180; //to rad
             init_Motor_angle[i*3+j] = float_init_Motor_angle[i*3+j];      //vector
             imp.joinCmdPos(i,j) = float_init_Motor_angle[i*3+j];            //imp.forwardKinematics
-            InitPos(i,j) = float_init_Motor_angle[i*3+j];                               //Matrix
-            //cout<<init_Motor_angle[i*3+j]<<endl;
+            cout<<init_Motor_angle[i*3+j]<<endl;
         }
     imp.forwardKinematics();
-    imp.setInitPos(InitPos);
+    imp.setInitPos(imp.legCmdPos);        //legCmdPos
     // for(int i=0; i<4; i++)
     //     for(int j=0;j<3;j++)
     //         cout<<"legCmdPos_"<<i*3+j<<"  "<<imp.legCmdPos(i,j)<<endl ;
