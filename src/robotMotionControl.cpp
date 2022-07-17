@@ -131,16 +131,32 @@ void MotionControl::updateFtsPstVel()
         ftsPstVel.row(i) = temp_vel.transpose();
     }
 }
-
-void MotionControl::forwardKinematics()
+/**
+ * @brief forwardKinematics
+ * 
+ * @param mode 
+ * 0    update legCmdPos with joinCmdPos(target)
+ * 1    update ftsPstPos with jointPstPos(present)
+ */
+void MotionControl::forwardKinematics(int mode)
 {
     for(uint8_t legNum=0; legNum<4; legNum++)  // LF RF LH RH
     {
         float th0,th1,th2;
         float factor_y, factor_x,  factor_z, factor_sin;  
-        th0 =  joinCmdPos(legNum,0);
-        th1 =  joinCmdPos(legNum,1);
-        th2 =  joinCmdPos(legNum,2);
+        if(mode==0)
+        {
+            th0 =  joinCmdPos(legNum,0);
+            th1 =  joinCmdPos(legNum,1);
+            th2 =  joinCmdPos(legNum,2);    
+        }
+        else if(mode==1)
+        {
+            th0 =  jointPstPos(legNum,0);
+            th1 =  jointPstPos(legNum,1);
+            th2 =  jointPstPos(legNum,2);     
+        }
+
         if(legNum==0 )              //LF  
         {
             factor_x = 1;
@@ -169,9 +185,18 @@ void MotionControl::forwardKinematics()
             factor_z = 1;
             factor_sin = 1;
         }
-        legCmdPos(legNum,0) = factor_x * (-factor_sin * L1 * sin(th1) + L2 * cos(th1 + th2));
-        legCmdPos(legNum,1) = factor_y * ((( L1 * cos(th1) + factor_sin * L2 * sin(th1 + th2) ) * cos(th0) + factor_sin * L3 * sin(th0)));
-        legCmdPos(legNum,2) = factor_z * (( L1 * cos(th1) + factor_sin * L2 * sin(th1 + th2) ) * sin(th0) - factor_sin * L3 * cos(th0));
+        if(mode==0)
+        {
+            legCmdPos(legNum,0) = factor_x * (-factor_sin * L1 * sin(th1) + L2 * cos(th1 + th2));
+            legCmdPos(legNum,1) = factor_y * ((( L1 * cos(th1) + factor_sin * L2 * sin(th1 + th2) ) * cos(th0) + factor_sin * L3 * sin(th0)));
+            legCmdPos(legNum,2) = factor_z * (( L1 * cos(th1) + factor_sin * L2 * sin(th1 + th2) ) * sin(th0) - factor_sin * L3 * cos(th0));
+        }
+        else if(mode==1)
+        {
+            ftsPstPos(legNum,0) = factor_x * (-factor_sin * L1 * sin(th1) + L2 * cos(th1 + th2));
+            ftsPstPos(legNum,1) = factor_y * ((( L1 * cos(th1) + factor_sin * L2 * sin(th1 + th2) ) * cos(th0) + factor_sin * L3 * sin(th0)));
+            ftsPstPos(legNum,2) = factor_z * (( L1 * cos(th1) + factor_sin * L2 * sin(th1 + th2) ) * sin(th0) - factor_sin * L3 * cos(th0));
+        }
     }
 
 }
@@ -303,6 +328,7 @@ IMPControl::IMPControl()
     target_vel.setZero();
     target_acc.setZero();
     target_force.setZero();
+    impCtlRate = 1;
 }
 //motors.present_torque  ->  force
 void IMPControl::impdeliver(vector<float>present_torque)

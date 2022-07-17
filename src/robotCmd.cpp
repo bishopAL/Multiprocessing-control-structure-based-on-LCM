@@ -33,12 +33,12 @@ Matrix<float, 3, 1> force;
 Matrix<float, 3, 1> tau;
 ImpParaHandler ipHandle;
 vector<int> ID = {
-// 0,1,2,
+0,1,2,
 3, 4, 5,
-// 6,7,8
-// ,9,10,11
+6,7,8
+,9,10,11
 };
-DxlAPI motors("/dev/ttyAMA0", 3000000, ID, 1);  //3000000  cannot hold 6 legs
+DxlAPI motors("/dev/ttyAMA0", 1000000, ID, 1);  //3000000  cannot hold 6 legs
 Matrix<float, 1, 3> target_pos;
 Matrix<float, 1, 3> target_vel;
 Matrix<float, 1, 3> target_acc;
@@ -101,7 +101,7 @@ void *robotStateUpdateSend(void *data)
             imp.joinCmdPos(i,j) = float_init_Motor_angle[i*3+j];            //imp.forwardKinematics
             cout<<init_Motor_angle[i*3+j]<<endl;
         }
-    imp.forwardKinematics();
+    imp.forwardKinematics(0);
     imp.setInitPos(imp.legCmdPos);        //legCmdPos
     // for(int i=0; i<4; i++)
     //     for(int j=0;j<3;j++)
@@ -160,7 +160,8 @@ void *robotStateUpdateSend(void *data)
         // update the data IMP need
         imp.updateJointPstPos(motors.present_position);
         imp.updateJointPstVel(motors.present_velocity);
-        imp.updateFtsPstPos();
+        imp.forwardKinematics(1);
+        //imp.updateFtsPstPos();
         imp.updateJacobians();
         imp.updateFtsPstVel();
         
@@ -179,21 +180,23 @@ void *robotStateUpdateSend(void *data)
         //     temp_pos[i] = imp.joinCmdPos(0,i);
         // motors.setPosition(temp_pos);
 
-        imp.nextStep();
+        //imp.nextStep();//
+        cout<<"legCmdPos:"<<imp.legCmdPos<<endl;
 
-        // imp.impdeliver(motors.present_torque);  
-        // imp.impCtller();
+        imp.impdeliver(motors.present_torque);  
+        imp.impCtller();
+        cout<<"xc_dotdot: \n"<<imp.xc_dotdot<<"; \nxc_dot: \n"<<imp.xc_dot<<"; \nxc: \n"<<imp.xc<<endl;
         imp.inverseKinematics();
         for(int i=0; i<4; i++)
             for(int j=0;j<3;j++)
             {
                 temp_pos[i*3+j] = imp.joinCmdPos(i,j);
-                cout<<"temp_pos_"<<i*3+j<<"  "<<temp_pos[i*3+j] <<endl;
+                cout<<"temp_angle_"<<i*3+j<<"  "<<temp_pos[i*3+j] <<endl;
             }
             cout<<'\n'<<endl;
         //motors.setPosition(temp_pos);     
 
-        //cout<<"xc_dotdot: "<<imp.xc_dotdot<<"; xc_dot: "<<imp.xc_dot<<"; xc: "<<imp.xc<<endl;
+        
         
 
        //test time
@@ -219,7 +222,7 @@ void *robotStateUpdateSend(void *data)
     //     rs.endVel[0] = 0;
     //     Lcm.publish("ROBOTSTATE", &rs);
 
-         usleep(1e6);
+        usleep(1e6);
     }
 }
 

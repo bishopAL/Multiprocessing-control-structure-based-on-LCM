@@ -76,7 +76,7 @@ class MotionControl
         void updateJointPstPos(vector<float> jointPos);
         void updateJointPstVel(vector<float> jointVel);
         void updateJacobians();
-        void forwardKinematics();
+        void forwardKinematics(int mode);
         void inverseKinematics();   // standing state
         void updateFtsPstPos(); // to update Pos of foot  in shoulder coordinate
         void updateFtsPstVel(); // to update Vel of foot  in shoulder coordinate
