@@ -36,12 +36,22 @@ void MotionControl::setInitPos(Matrix<float, 4, 3> initPosition)
     legCmdPos = initPosition;
     targetCoMPosition.setZero();
 }
-// set  X, Y , alpha in world cordinate
+/**
+ * @brief 
+ * 
+ * @param tCV 
+ * set  Vel of X,Y,alpha in world cordinate
+ */
 void MotionControl::setCoMVel(Vector<float, 3> tCV)
 {
     targetCoMVelocity = tCV;
 }
-
+/**
+ * @brief 
+ * 
+ * @param jointPos 
+ * put (vector)jointPos[12] into (Matrix)jointPstPos(4,3)
+ */
 void MotionControl::updateJointPstPos(vector<float> jointPos)
 {
     for(int i=0; i<4; i++)
@@ -50,7 +60,13 @@ void MotionControl::updateJointPstPos(vector<float> jointPos)
             jointPstPos(i,j) = jointPos[i*3 + j];
     }
 }
-void MotionControl::     updateJointPstVel(vector<float> jointVel)
+/**
+ * @brief 
+ * 
+ * @param jointVel 
+ * put (vector)jointVel[12] into (Matrix)jointPstVel(4,3)
+ */
+void MotionControl::updateJointPstVel(vector<float> jointVel)
 {
     for(int i=0; i<4; i++)
     {
@@ -58,52 +74,57 @@ void MotionControl::     updateJointPstVel(vector<float> jointVel)
             jointPstVel(i,j) = jointVel[i*3 + j];
     }
 }
-
+/**
+ * @brief 
+ * update jacobian_vector with jointPstPos
+ */
 void MotionControl::updateJacobians()
 {
-    // LF
-    jacobian_vector[0](0, 0) = 0;
-    jacobian_vector[0](0, 1) = - L2*sin(jointPstPos(0,1) + jointPstPos(0,2)) - L1*cos(jointPstPos(0,1));
-    jacobian_vector[0](0, 2) = -L2*sin(jointPstPos(0,1) + jointPstPos(0,2));
-    jacobian_vector[0](1, 0) = L3*cos(jointPstPos(0,0)) - L1*cos(jointPstPos(0,1))*sin(jointPstPos(0,0)) - L2*cos(jointPstPos(0,1))*sin(jointPstPos(0,0))*sin(jointPstPos(0,2)) - L2*cos(jointPstPos(0,2))*sin(jointPstPos(0,0))*sin(jointPstPos(0,1));
-    jacobian_vector[0](1, 1) = L2*cos(jointPstPos(0,0))*cos(jointPstPos(0,1))*cos(jointPstPos(0,2)) - L1*cos(jointPstPos(0,0))*sin(jointPstPos(0,1)) - L2*cos(jointPstPos(0,0))*sin(jointPstPos(0,1))*sin(jointPstPos(0,2));
-    jacobian_vector[0](1, 2) = L2*cos(jointPstPos(0,0))*cos(jointPstPos(0,1))*cos(jointPstPos(0,2)) - L2*cos(jointPstPos(0,0))*sin(jointPstPos(0,1))*sin(jointPstPos(0,2));
-    jacobian_vector[0](2, 0) = L3*sin(jointPstPos(0,0)) + L1*cos(jointPstPos(0,0))*cos(jointPstPos(0,1)) + L2*cos(jointPstPos(0,0))*cos(jointPstPos(0,1))*sin(jointPstPos(0,2)) + L2*cos(jointPstPos(0,0))*cos(jointPstPos(0,2))*sin(jointPstPos(0,1));
-    jacobian_vector[0](2, 1) = L2*cos(jointPstPos(0,1))*cos(jointPstPos(0,2))*sin(jointPstPos(0,0)) - L1*sin(jointPstPos(0,0))*sin(jointPstPos(0,1)) - L2*sin(jointPstPos(0,0))*sin(jointPstPos(0,1))*sin(jointPstPos(0,2));
-    jacobian_vector[0](2, 2) = L2*cos(jointPstPos(0,1))*cos(jointPstPos(0,2))*sin(jointPstPos(0,0)) - L2*sin(jointPstPos(0,0))*sin(jointPstPos(0,1))*sin(jointPstPos(0,2));
-
-    // RF
-    jacobian_vector[1](0, 0) = 0;
-    jacobian_vector[1](0, 1) = L1*cos(jointPstPos(1,1)) - L2*sin(jointPstPos(1,1) + jointPstPos(1,2));
-    jacobian_vector[1](0, 2) = -L2*sin(jointPstPos(1,1) + jointPstPos(1,2));
-    jacobian_vector[1](1, 0) = L3*cos(jointPstPos(1,0)) + L1*cos(jointPstPos(1,1))*sin(jointPstPos(1,0)) - L2*cos(jointPstPos(1,1))*sin(jointPstPos(1,0))*sin(jointPstPos(1,2)) - L2*cos(jointPstPos(1,2))*sin(jointPstPos(1,0))*sin(jointPstPos(1,1));
-    jacobian_vector[1](1, 1) = L1*cos(jointPstPos(1,0))*sin(jointPstPos(1,1)) + L2*cos(jointPstPos(1,0))*cos(jointPstPos(1,1))*cos(jointPstPos(1,2)) - L2*cos(jointPstPos(1,0))*sin(jointPstPos(1,1))*sin(jointPstPos(1,2));
-    jacobian_vector[1](1, 2) = L2*cos(jointPstPos(1,0))*cos(jointPstPos(1,1))*cos(jointPstPos(1,2)) - L2*cos(jointPstPos(1,0))*sin(jointPstPos(1,1))*sin(jointPstPos(1,2));
-    jacobian_vector[1](2, 0) = L3*sin(jointPstPos(1,0)) - L1*cos(jointPstPos(1,0))*cos(jointPstPos(1,1)) + L2*cos(jointPstPos(1,0))*cos(jointPstPos(1,1))*sin(jointPstPos(1,2)) + L2*cos(jointPstPos(1,0))*cos(jointPstPos(1,2))*sin(jointPstPos(1,1));
-    jacobian_vector[1](2, 1) = L1*sin(jointPstPos(1,0))*sin(jointPstPos(1,1)) + L2*cos(jointPstPos(1,1))*cos(jointPstPos(1,2))*sin(jointPstPos(1,0)) - L2*sin(jointPstPos(1,0))*sin(jointPstPos(1,1))*sin(jointPstPos(1,2));
-    jacobian_vector[1](2, 2) = L2*cos(jointPstPos(1,1))*cos(jointPstPos(1,2))*sin(jointPstPos(1,0)) - L2*sin(jointPstPos(1,0))*sin(jointPstPos(1,1))*sin(jointPstPos(1,2));
-
-    //LH
-    jacobian_vector[2](0, 0) = 0;
-    jacobian_vector[2](0, 1) = L2*sin(jointPstPos(2,1) + jointPstPos(2,2)) - L1*cos(jointPstPos(2,1));
-    jacobian_vector[2](0, 2) = L2*sin(jointPstPos(2,1) + jointPstPos(2,2));
-    jacobian_vector[2](1, 0) = L2*cos(jointPstPos(2,1))*sin(jointPstPos(2,0))*sin(jointPstPos(2,2)) - L1*cos(jointPstPos(2,1))*sin(jointPstPos(2,0)) - L3*cos(jointPstPos(2,0)) + L2*cos(jointPstPos(2,2))*sin(jointPstPos(2,0))*sin(jointPstPos(2,1));
-    jacobian_vector[2](1, 1) = L2*cos(jointPstPos(2,0))*sin(jointPstPos(2,1))*sin(jointPstPos(2,2)) - L2*cos(jointPstPos(2,0))*cos(jointPstPos(2,1))*cos(jointPstPos(2,2)) - L1*cos(jointPstPos(2,0))*sin(jointPstPos(2,1));
-    jacobian_vector[2](1, 2) = L2*cos(jointPstPos(2,0))*sin(jointPstPos(2,1))*sin(jointPstPos(2,2)) - L2*cos(jointPstPos(2,0))*cos(jointPstPos(2,1))*cos(jointPstPos(2,2));
-    jacobian_vector[2](2, 0) = L3*sin(jointPstPos(2,0)) - L1*cos(jointPstPos(2,0))*cos(jointPstPos(2,1)) + L2*cos(jointPstPos(2,0))*cos(jointPstPos(2,1))*sin(jointPstPos(2,2)) + L2*cos(jointPstPos(2,0))*cos(jointPstPos(2,2))*sin(jointPstPos(2,1));
-    jacobian_vector[2](2, 1) = L1*sin(jointPstPos(2,0))*sin(jointPstPos(2,1)) + L2*cos(jointPstPos(2,1))*cos(jointPstPos(2,2))*sin(jointPstPos(2,0)) - L2*sin(jointPstPos(2,0))*sin(jointPstPos(2,1))*sin(jointPstPos(2,2));
-    jacobian_vector[2](2, 2) = L2*cos(jointPstPos(2,1))*cos(jointPstPos(2,2))*sin(jointPstPos(2,0)) - L2*sin(jointPstPos(2,0))*sin(jointPstPos(2,1))*sin(jointPstPos(2,2));
-
-    //RH
-    jacobian_vector[3](0, 0) = 0;
-    jacobian_vector[3](0, 1) = L2*sin(jointPstPos(3,1) + jointPstPos(3,2)) + L1*cos(jointPstPos(3,1));
-    jacobian_vector[3](0, 2) = L2*sin(jointPstPos(3,1) + jointPstPos(3,2));
-    jacobian_vector[3](1, 0) = L3*cos(jointPstPos(3,0)) + L1*cos(jointPstPos(3,1))*sin(jointPstPos(3,0)) + L2*cos(jointPstPos(3,1))*sin(jointPstPos(3,0))*sin(jointPstPos(3,2)) + L2*cos(jointPstPos(3,2))*sin(jointPstPos(3,0))*sin(jointPstPos(3,1));
-    jacobian_vector[3](1, 1) = L1*cos(jointPstPos(3,0))*sin(jointPstPos(3,1)) - L2*cos(jointPstPos(3,0))*cos(jointPstPos(3,1))*cos(jointPstPos(3,2)) + L2*cos(jointPstPos(3,0))*sin(jointPstPos(3,1))*sin(jointPstPos(3,2));
-    jacobian_vector[3](1, 2) = L2*cos(jointPstPos(3,0))*sin(jointPstPos(3,1))*sin(jointPstPos(3,2)) - L2*cos(jointPstPos(3,0))*cos(jointPstPos(3,1))*cos(jointPstPos(3,2));
-    jacobian_vector[3](2, 0) = L3*sin(jointPstPos(3,0)) - L1*cos(jointPstPos(3,0))*cos(jointPstPos(3,1)) - L2*cos(jointPstPos(3,0))*cos(jointPstPos(3,1))*sin(jointPstPos(3,2)) - L2*cos(jointPstPos(3,0))*cos(jointPstPos(3,2))*sin(jointPstPos(3,1));
-    jacobian_vector[3](2, 1) = L1*sin(jointPstPos(3,0))*sin(jointPstPos(3,1)) - L2*cos(jointPstPos(3,1))*cos(jointPstPos(3,2))*sin(jointPstPos(3,0)) + L2*sin(jointPstPos(3,0))*sin(jointPstPos(3,1))*sin(jointPstPos(3,2));
-    jacobian_vector[3](2, 2) = L2*sin(jointPstPos(3,0))*sin(jointPstPos(3,1))*sin(jointPstPos(3,2)) - L2*cos(jointPstPos(3,1))*cos(jointPstPos(3,2))*sin(jointPstPos(3,0));
+    for(uint8_t legNum=0; legNum<4; legNum++)  // LF RF LH RH
+    {
+        float th0,th1,th2;
+        float factor_y, factor_x, factor_z, factor_sin;  
+        th0 =  jointPstPos(legNum,0);
+        th1 =  jointPstPos(legNum,1);
+        th2 =  jointPstPos(legNum,2); 
+        if(legNum==0 )              //LF  
+        {
+            factor_x = 1;
+            factor_y = 1;
+            factor_z = 1;
+            factor_sin = 1;
+        }
+        else if(legNum==1 )     
+        {
+            factor_x = 1;
+            factor_y = -1;
+            factor_z = 1;
+            factor_sin = -1;
+        }
+        else if(legNum==2 )     
+        {
+            factor_x = 1;
+            factor_y = 1;
+            factor_z = 1;
+            factor_sin = -1;
+        }
+        else if(legNum==3 )     
+        {
+            factor_x = 1;
+            factor_y = -1;
+            factor_z = 1;
+            factor_sin = 1;
+        }
+        jacobian_vector[legNum](0, 0) = 0;
+        jacobian_vector[legNum](0, 1) = -factor_x*(L2*sin(th1 + th2) + L1*factor_sin*cos(th1));
+        jacobian_vector[legNum](0, 2) = -L2*factor_x*sin(th1 + th2);
+        jacobian_vector[legNum](1, 0) = -factor_y*(sin(th0)*(L1*cos(th1) + L2*factor_sin*sin(th1 + th2)) - L3*factor_sin*cos(th0));
+        jacobian_vector[legNum](1, 1) = -factor_y*cos(th0)*(L1*sin(th1) - L2*factor_sin*cos(th1 + th2));
+        jacobian_vector[legNum](1, 2) = L2*factor_sin*factor_y*cos(th1 + th2)*cos(th0);
+        jacobian_vector[legNum](2, 0) = L3*sin(th0) + factor_sin*factor_z*cos(th0)*(L1*cos(th1) + L2*factor_sin*sin(th1 + th2));
+        jacobian_vector[legNum](2, 1) = -factor_sin*factor_z*sin(th0)*(L1*sin(th1) - L2*factor_sin*cos(th1 + th2));
+        jacobian_vector[legNum](2, 2) = L2*factor_z*cos(th1 + th2)*sin(th0);
+    }
 }
 
 void MotionControl::updateFtsPstPos()
@@ -135,8 +156,8 @@ void MotionControl::updateFtsPstVel()
  * @brief forwardKinematics
  * 
  * @param mode 
- * 0    update legCmdPos with joinCmdPos(target)
- * 1    update ftsPstPos with jointPstPos(present)
+ * =0    update legCmdPos with joinCmdPos(target)
+ * =1    update ftsPstPos with jointPstPos(present)
  */
 void MotionControl::forwardKinematics(int mode)
 {
@@ -164,21 +185,21 @@ void MotionControl::forwardKinematics(int mode)
             factor_z = 1;
             factor_sin = 1;
         }
-        else if(legNum==1 )     
+        else if(legNum==1 )          //RF 
         {
             factor_x = 1;
             factor_y = -1;
-            factor_z = -1;
+            factor_z = 1;
             factor_sin = -1;
         }
-        else if(legNum==2 )     
+        else if(legNum==2 )          //LH    
         {
             factor_x = 1;
             factor_y = 1;
-            factor_z = -1;
+            factor_z = 1;
             factor_sin = -1;
         }
-        else if(legNum==3 )     
+        else if(legNum==3 )         //RH  
         {
             factor_x = 1;
             factor_y = -1;
@@ -189,13 +210,13 @@ void MotionControl::forwardKinematics(int mode)
         {
             legCmdPos(legNum,0) = factor_x * (-factor_sin * L1 * sin(th1) + L2 * cos(th1 + th2));
             legCmdPos(legNum,1) = factor_y * ((( L1 * cos(th1) + factor_sin * L2 * sin(th1 + th2) ) * cos(th0) + factor_sin * L3 * sin(th0)));
-            legCmdPos(legNum,2) = factor_z * (( L1 * cos(th1) + factor_sin * L2 * sin(th1 + th2) ) * sin(th0) - factor_sin * L3 * cos(th0));
+            legCmdPos(legNum,2) = factor_z * (( L1 * cos(th1) + factor_sin * L2 * sin(th1 + th2) ) * factor_sin * sin(th0) -  L3 * cos(th0));
         }
         else if(mode==1)
         {
             ftsPstPos(legNum,0) = factor_x * (-factor_sin * L1 * sin(th1) + L2 * cos(th1 + th2));
             ftsPstPos(legNum,1) = factor_y * ((( L1 * cos(th1) + factor_sin * L2 * sin(th1 + th2) ) * cos(th0) + factor_sin * L3 * sin(th0)));
-            ftsPstPos(legNum,2) = factor_z * (( L1 * cos(th1) + factor_sin * L2 * sin(th1 + th2) ) * sin(th0) - factor_sin * L3 * cos(th0));
+            ftsPstPos(legNum,2) = factor_z * (( L1 * cos(th1) + factor_sin * L2 * sin(th1 + th2) ) * factor_sin * sin(th0) -  L3 * cos(th0));
         }
     }
 
@@ -205,43 +226,47 @@ void MotionControl::inverseKinematics()
 {
     for(uint8_t legNum=0; legNum<4; legNum++)  // LF RF LH RH
         {
-          float factor_y, factor_x, factor_xc, factor_yc, factor_zc;  // factor for x/y; factor for whole formula
-          if(legNum==0)
-          {
-              factor_xc= 1;
-              factor_yc= -1;
-              factor_zc= -1;
-              factor_x= 1;
-              factor_y= 1;
-          }
-          else if(legNum==1)
-          {
-              factor_xc= -1;
-              factor_yc= 1;
-              factor_zc= 1;
-              factor_x= 1;
-              factor_y= -1;
-          }
-          else if(legNum==2)
-          {
-              factor_xc= -1;
-              factor_yc= 1;
-              factor_zc= -1;
-              factor_x= 1;
-              factor_y= 1;
-          }
-          else if(legNum==3)
-          {
-              factor_xc= 1;
-              factor_yc= 1;
-              factor_zc= 1;
-              factor_x= 1;
-              factor_y= -1;
-          }
-          joinCmdPos(legNum,0) = factor_xc * (asin(L3 / sqrt( legCmdPos(legNum,2)*legCmdPos(legNum,2) + legCmdPos(legNum,1)*legCmdPos(legNum,1) )) + atan2(legCmdPos(legNum,2),factor_y * legCmdPos(legNum,1)) );     
-          joinCmdPos(legNum,1) = factor_yc * (asin((legCmdPos(legNum,1) * legCmdPos(legNum,1) + legCmdPos(legNum,0) * legCmdPos(legNum,0) + legCmdPos(legNum,2) * legCmdPos(legNum,2) + L1 * L1 - L2 * L2 - L3 * L3) / ( 2 * L1 * sqrt (legCmdPos(legNum,1) * legCmdPos(legNum,1) +  legCmdPos(legNum,0) * legCmdPos(legNum,0) + legCmdPos(legNum,2) * legCmdPos(legNum,2) - L3 * L3)))
-                  - atan2(sqrt(legCmdPos(legNum,1) * legCmdPos(legNum,1) + legCmdPos(legNum,2) * legCmdPos(legNum,2) - L3 * L3) , factor_x * legCmdPos(legNum,0)));
-          joinCmdPos(legNum,2) = factor_zc * asin((L1 * L1 + L2 * L2 + L3 * L3 - legCmdPos(legNum,1) * legCmdPos(legNum,1) - legCmdPos(legNum,0) * legCmdPos(legNum,0) - legCmdPos(legNum,2) * legCmdPos(legNum,2)) / (2 * L1 * L2));
+            float factor_y, factor_x, factor_xc, factor_yc, factor_zc;  // factor for x/y; factor for whole formula
+            if(legNum==0)
+            {
+                factor_xc= 1;
+                factor_yc= -1;
+                factor_zc= -1;
+                factor_x= 1;
+                factor_y= 1;
+            }
+            else if(legNum==1)
+            {
+                factor_xc= -1;
+                factor_yc= 1;
+                factor_zc= 1;
+                factor_x= 1;
+                factor_y= -1;
+            }
+            else if(legNum==2)
+            {
+                factor_xc= -1;
+                factor_yc= 1;
+                factor_zc= -1;
+                factor_x= 1;
+                factor_y= 1;
+            }
+            else if(legNum==3)
+            {
+                factor_xc= 1;
+                factor_yc= 1;
+                factor_zc= 1;
+                factor_x= 1;
+                factor_y= -1;
+            }
+            joinCmdPos(legNum,0) = factor_xc * (asin(L3 / sqrt( legCmdPos(legNum,2)*legCmdPos(legNum,2) + legCmdPos(legNum,1)*legCmdPos(legNum,1) )) + atan2(legCmdPos(legNum,2),factor_y * legCmdPos(legNum,1)) );     
+            joinCmdPos(legNum,1) = factor_yc * (asin((legCmdPos(legNum,1) * legCmdPos(legNum,1) + legCmdPos(legNum,0) * legCmdPos(legNum,0) + legCmdPos(legNum,2) * legCmdPos(legNum,2) + L1 * L1 - L2 * L2 - L3 * L3) / ( 2 * L1 * sqrt (legCmdPos(legNum,1) * legCmdPos(legNum,1) +  legCmdPos(legNum,0) * legCmdPos(legNum,0) + legCmdPos(legNum,2) * legCmdPos(legNum,2) - L3 * L3)))
+                    - atan2(sqrt(legCmdPos(legNum,1) * legCmdPos(legNum,1) + legCmdPos(legNum,2) * legCmdPos(legNum,2) - L3 * L3) , factor_x * legCmdPos(legNum,0)));
+            joinCmdPos(legNum,2) = factor_zc * asin((L1 * L1 + L2 * L2 + L3 * L3 - legCmdPos(legNum,1) * legCmdPos(legNum,1) - legCmdPos(legNum,0) * legCmdPos(legNum,0) - legCmdPos(legNum,2) * legCmdPos(legNum,2)) / (2 * L1 * L2));
+            // for(int k=0;k<3;k++)
+            //     if( isnanf(joinCmdPos(legNum,k)) )
+            //         joinCmdPos(legNum,k) = 0;
+
         }
 }
 
@@ -287,10 +312,10 @@ void MotionControl::nextStep()
                 legCmdPos(legNum, pos) = legCmdPos(legNum, pos) - swingPhaseVelocity(pos) * timePeriod;
             
             if( ( timePresentForSwing(legNum) - (timeForGaitPeriod - (timeForStancePhase(legNum,1) - timeForStancePhase(legNum,0)))/2 ) > 1e-4)
-                legCmdPos(legNum, 2) -= 3.0/1000;
+                legCmdPos(legNum, 2) -= 2.0/1000;
             if( ( timePresentForSwing(legNum) - (timeForGaitPeriod - (timeForStancePhase(legNum,1) - timeForStancePhase(legNum,0)))/2 ) < -1e-4 
                 && timePresentForSwing(legNum) > 1e-4)
-                legCmdPos(legNum, 2) += 3.0/1000;
+                legCmdPos(legNum, 2) += 2.0/1000;
             stanceFlag(legNum) = false;
         }
     }
@@ -300,7 +325,7 @@ void MotionControl::nextStep()
     {
         for(uint8_t pos=0; pos<3; pos++)
         {
-            targetCoMPosition(leg, pos) += targetCoMVelocity(pos) * timePeriod;
+            targetCoMPosition(leg, pos) += targetCoMVelocity(pos) * timePeriod / (timeForStancePhase(leg,1) - timeForStancePhase(leg,0));
         }
         if(stanceFlag(leg) == 0) timePresentForSwing(leg) += timePeriod;
         else timePresentForSwing(leg) = 0;
@@ -318,9 +343,14 @@ void MotionControl::nextStep()
 
 IMPControl::IMPControl()
 {
-    K.setConstant(1000);
-    B.setConstant(30);
-    M.setConstant(3);
+    float impdata[100];
+    string2float("../include/imp_parameter.csv",impdata);
+    Map<Matrix<float, 4, 3, RowMajor>> mapK(impdata), mapB(impdata +12), mapM(impdata +24);
+    K=mapK;
+    B=mapB;
+    M=mapM;
+    cout<<impdata<<endl;
+
     xc_dotdot.setZero();
     xc_dot.setZero();
     xc.setZero();
@@ -328,10 +358,16 @@ IMPControl::IMPControl()
     target_vel.setZero();
     target_acc.setZero();
     target_force.setZero();
-    impCtlRate = 1;
+    impCtlRate = 100;
 }
-//motors.present_torque  ->  force
-void IMPControl::impdeliver(vector<float>present_torque)
+
+/**
+ * @brief 
+ * Deliver parameter to impCtller.
+ * (target_pos = legCmdPos)
+ * @param present_torque update force with present_torque
+ */
+void IMPControl::impdeliver(vector<float> present_torque)
 {
     Matrix<float, 3, 4> temp;
     for(int i=0; i<3; i++)
@@ -339,16 +375,53 @@ void IMPControl::impdeliver(vector<float>present_torque)
             temp(i ,j ) = present_torque[i*4+j];
     for (int i=0; i<4; i++)
         force.col(i) = jacobian_vector[i].transpose().inverse() * temp.col(i);
-    target_pos = legCmdPos;
-    //imp.target_ve4l = 0;
-    //imp.target_acc = 0; //
+    //target_pos = legCmdPos;
+    
+    // target_vel << 
+    // 0.01, 0.01, 0.01, 0.01,
+    // 0.01, 0.01, 0.01, 0.01,
+    // 0.01, 0.01, 0.01, 0.01;
+    //target_acc = 0; //
     //target_force << 0;
 }
+/**
+ * @brief 
+ * Calculcate legCmdPos with target_acc, target_force, target_vel, target_pos.
+ */
 void IMPControl::impCtller()
 {
+    Matrix<float, 4,3> matrix_temp;
     // xc_dotdot = 0 + M/-1*( - footForce[i][0] + refForce[i] - B * (pstFootVel[i][0] - 0) - K * (pstFootPos[i][0] - targetFootPos(i,0)));
     xc_dotdot =  target_acc +M.cwiseInverse().cwiseProduct( ( target_force - force.transpose() + B.cwiseProduct(target_vel - ftsPstVel) +  K.cwiseProduct(target_pos - ftsPstPos)) ); //
     xc_dot =  ftsPstVel + xc_dotdot * (1/impCtlRate);
     xc =  ftsPstPos + 0.5 * (xc_dot * (1/impCtlRate));
     legCmdPos = xc;
+}
+
+/**
+ * @brief 
+ * Open the file to read float data to dest.    
+ * In the file, ',' must be used after every data and must be the last character.  
+ * @param add The address of the file to read, like "../include/init_Motor_angle.csv"
+ * @param dest Floating pointer to store datas.
+ */
+void string2float(string add, float* dest)
+{
+    char data_char[8000],*char_float;
+    const char *a=",";  //Separate datas
+    int i=0;
+    ifstream inidata;
+
+    inidata.open(add);
+    if (inidata)    cout<<"file open Successful"<<endl;
+    else    cout<<"file open FAIL"<<endl;
+    inidata.read(data_char,1000);
+    char_float=strtok(data_char, a);
+    while(char_float!=NULL)
+    {        
+        dest[i++] = stof(char_float);
+        //cout<<'|'<<dest[i-1]<<endl;
+        char_float=strtok(NULL, a);
+    }
+    inidata.close();
 }

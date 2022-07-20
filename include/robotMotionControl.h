@@ -106,3 +106,5 @@ class IMPControl : public MotionControl
         void impCtller();
         IMPControl();
 };
+
+void string2float(string add, float* dest);
