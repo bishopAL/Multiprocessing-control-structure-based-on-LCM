@@ -157,7 +157,7 @@ void DxlAPI::setPosition(vector<float> posVector)
     groupSyncWritePosition.clearParam();
 }
 
-void DxlAPI::getPosition()
+bool DxlAPI::getPosition()
 {
     present_position.clear();
     int dxl_comm_result;
@@ -176,6 +176,7 @@ void DxlAPI::getPosition()
         if (dxl_getdata_result != true)
         {
             fprintf(stderr, "[ID:%03d] groupSyncRead getdata failed", ID[i]);
+            return false;
         }
     }
     for(int i =0; i<MOTOR_NUM; i++)
@@ -184,9 +185,10 @@ void DxlAPI::getPosition()
         present_position.push_back((float(temp)-2047.0)/4096.0*(2*3.1416));  // value range 0~4095  <--> angle range -3.1416~3.1416
     }
     groupSyncReadPosition.clearParam();
+    return true;
 }
 
-void DxlAPI::getVelocity()
+bool DxlAPI::getVelocity()
 {
     present_velocity.clear();
     int dxl_comm_result;
@@ -205,6 +207,7 @@ void DxlAPI::getVelocity()
         if (dxl_getdata_result != true)
         {
             fprintf(stderr, "[ID:%03d] groupSyncRead getdata failed", ID[i]);
+            return false;
         }
     }
     for(int i =0; i<MOTOR_NUM; i++)
@@ -214,6 +217,7 @@ void DxlAPI::getVelocity()
         present_velocity.push_back(float(temp) * 0.229 * 2 * 3.1416 / 60);
     }
     groupSyncReadVelocity.clearParam();
+    return true;
 }
 
 void DxlAPI::setTorque(vector<float> torVector)
@@ -240,7 +244,7 @@ void DxlAPI::setTorque(vector<float> torVector)
     groupSyncWriteCurrent.clearParam();
 }
 
-void DxlAPI::getTorque()
+bool DxlAPI::getTorque()
 {
     present_torque.clear();
     int dxl_comm_result;
@@ -259,6 +263,7 @@ void DxlAPI::getTorque()
         if (dxl_getdata_result != true)
         {
             fprintf(stderr, "[ID:%03d] groupSyncRead getdata failed", ID[i]);
+            return false;
         }
     }
     for(int i =0; i<MOTOR_NUM; i++)
@@ -268,6 +273,7 @@ void DxlAPI::getTorque()
         present_torque.push_back(current2torque(temp));
     }
     groupSyncReadCurrent.clearParam();
+    return true;
 }
 
 int DxlAPI::torque2current(float tor)

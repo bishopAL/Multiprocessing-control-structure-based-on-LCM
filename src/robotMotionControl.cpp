@@ -83,46 +83,51 @@ void MotionControl::updateJacobians()
     for(uint8_t legNum=0; legNum<4; legNum++)  // LF RF LH RH
     {
         float th0,th1,th2;
-        float factor_y, factor_x, factor_z, factor_sin;  
+        float factor_y, factor_x, factor_z, factor_s12, factor_s0;  
         th0 =  jointPstPos(legNum,0);
         th1 =  jointPstPos(legNum,1);
         th2 =  jointPstPos(legNum,2); 
+        //  shoulder coordinate to COM
         if(legNum==0 )              //LF  
         {
             factor_x = 1;
             factor_y = 1;
             factor_z = 1;
-            factor_sin = 1;
+            factor_s12 = 1;
+            factor_s0 = 1;
         }
-        else if(legNum==1 )     
+        else if(legNum==1 )          //RF 
         {
             factor_x = 1;
             factor_y = -1;
             factor_z = 1;
-            factor_sin = -1;
+            factor_s12 = -1;
+            factor_s0 = 1;
         }
-        else if(legNum==2 )     
+        else if(legNum==2 )          //LH    
         {
             factor_x = 1;
             factor_y = 1;
             factor_z = 1;
-            factor_sin = -1;
+            factor_s12 = 1;
+            factor_s0 = -1;
         }
-        else if(legNum==3 )     
+        else if(legNum==3 )         //RH  
         {
             factor_x = 1;
             factor_y = -1;
             factor_z = 1;
-            factor_sin = 1;
+            factor_s12 = -1;
+            factor_s0 = 1;
         }
         jacobian_vector[legNum](0, 0) = 0;
-        jacobian_vector[legNum](0, 1) = -factor_x*(L2*sin(th1 + th2) + L1*factor_sin*cos(th1));
+        jacobian_vector[legNum](0, 1) = -factor_x*(L2*sin(th1 + th2) + L1*factor_s12*cos(th1));
         jacobian_vector[legNum](0, 2) = -L2*factor_x*sin(th1 + th2);
-        jacobian_vector[legNum](1, 0) = -factor_y*(sin(th0)*(L1*cos(th1) + L2*factor_sin*sin(th1 + th2)) - L3*factor_sin*cos(th0));
-        jacobian_vector[legNum](1, 1) = -factor_y*cos(th0)*(L1*sin(th1) - L2*factor_sin*cos(th1 + th2));
-        jacobian_vector[legNum](1, 2) = L2*factor_sin*factor_y*cos(th1 + th2)*cos(th0);
-        jacobian_vector[legNum](2, 0) = L3*sin(th0) + factor_sin*factor_z*cos(th0)*(L1*cos(th1) + L2*factor_sin*sin(th1 + th2));
-        jacobian_vector[legNum](2, 1) = -factor_sin*factor_z*sin(th0)*(L1*sin(th1) - L2*factor_sin*cos(th1 + th2));
+        jacobian_vector[legNum](1, 0) = -factor_y*(sin(th0)*(L1*cos(th1) + L2*factor_s12*sin(th1 + th2)) - L3*factor_s0*cos(th0));
+        jacobian_vector[legNum](1, 1) = -factor_y*cos(th0)*(L1*sin(th1) - L2*factor_s12*cos(th1 + th2));
+        jacobian_vector[legNum](1, 2) = L2*factor_s12*factor_s0*factor_y*cos(th1 + th2)*cos(th0);
+        jacobian_vector[legNum](2, 0) = L3*sin(th0) + factor_s0*factor_z*cos(th0)*(L1*cos(th1) + L2*factor_s12*sin(th1 + th2));
+        jacobian_vector[legNum](2, 1) = -factor_s0*factor_z*sin(th0)*(L1*sin(th1) - L2*factor_s12*cos(th1 + th2));
         jacobian_vector[legNum](2, 2) = L2*factor_z*cos(th1 + th2)*sin(th0);
     }
 }
@@ -164,7 +169,7 @@ void MotionControl::forwardKinematics(int mode)
     for(uint8_t legNum=0; legNum<4; legNum++)  // LF RF LH RH
     {
         float th0,th1,th2;
-        float factor_y, factor_x,  factor_z, factor_sin;  
+        float factor_y, factor_x,  factor_z, factor_s12, factor_s0;  
         if(mode==0)
         {
             th0 =  joinCmdPos(legNum,0);
@@ -177,46 +182,50 @@ void MotionControl::forwardKinematics(int mode)
             th1 =  jointPstPos(legNum,1);
             th2 =  jointPstPos(legNum,2);     
         }
-
+        //  shoulder coordinate to COM
         if(legNum==0 )              //LF  
         {
             factor_x = 1;
             factor_y = 1;
             factor_z = 1;
-            factor_sin = 1;
+            factor_s12 = 1;
+            factor_s0 = 1;
         }
         else if(legNum==1 )          //RF 
         {
             factor_x = 1;
             factor_y = -1;
             factor_z = 1;
-            factor_sin = -1;
+            factor_s12 = -1;
+            factor_s0 = 1;
         }
         else if(legNum==2 )          //LH    
         {
             factor_x = 1;
             factor_y = 1;
             factor_z = 1;
-            factor_sin = -1;
+            factor_s12 = 1;
+            factor_s0 = -1;
         }
         else if(legNum==3 )         //RH  
         {
             factor_x = 1;
             factor_y = -1;
             factor_z = 1;
-            factor_sin = 1;
+            factor_s12 = -1;
+            factor_s0 = 1;
         }
         if(mode==0)
         {
-            legCmdPos(legNum,0) = factor_x * (-factor_sin * L1 * sin(th1) + L2 * cos(th1 + th2));
-            legCmdPos(legNum,1) = factor_y * ((( L1 * cos(th1) + factor_sin * L2 * sin(th1 + th2) ) * cos(th0) + factor_sin * L3 * sin(th0)));
-            legCmdPos(legNum,2) = factor_z * (( L1 * cos(th1) + factor_sin * L2 * sin(th1 + th2) ) * factor_sin * sin(th0) -  L3 * cos(th0));
+            legCmdPos(legNum,0) = factor_x * (-factor_s12 * L1 * sin(th1) + L2 * cos(th1 + th2));
+            legCmdPos(legNum,1) = factor_y * ((( L1 * cos(th1) + factor_s12 * L2 * sin(th1 + th2) ) * cos(th0) + factor_s0 * L3 * sin(th0)));
+            legCmdPos(legNum,2) = factor_z * (( L1 * cos(th1) + factor_s12 * L2 * sin(th1 + th2) ) * factor_s0 * sin(th0) -  L3 * cos(th0));
         }
         else if(mode==1)
         {
-            ftsPstPos(legNum,0) = factor_x * (-factor_sin * L1 * sin(th1) + L2 * cos(th1 + th2));
-            ftsPstPos(legNum,1) = factor_y * ((( L1 * cos(th1) + factor_sin * L2 * sin(th1 + th2) ) * cos(th0) + factor_sin * L3 * sin(th0)));
-            ftsPstPos(legNum,2) = factor_z * (( L1 * cos(th1) + factor_sin * L2 * sin(th1 + th2) ) * factor_sin * sin(th0) -  L3 * cos(th0));
+            ftsPstPos(legNum,0) = factor_x * (-factor_s12 * L1 * sin(th1) + L2 * cos(th1 + th2));
+            ftsPstPos(legNum,1) = factor_y * ((( L1 * cos(th1) + factor_s12 * L2 * sin(th1 + th2) ) * cos(th0) + factor_s0 * L3 * sin(th0)));
+            ftsPstPos(legNum,2) = factor_z * (( L1 * cos(th1) + factor_s12 * L2 * sin(th1 + th2) ) * factor_s0 * sin(th0) -  L3 * cos(th0));
         }
     }
 
@@ -246,7 +255,7 @@ void MotionControl::inverseKinematics()
             else if(legNum==2)
             {
                 factor_xc= -1;
-                factor_yc= 1;
+                factor_yc= -1;
                 factor_zc= -1;
                 factor_x= 1;
                 factor_y= 1;
@@ -263,9 +272,6 @@ void MotionControl::inverseKinematics()
             joinCmdPos(legNum,1) = factor_yc * (asin((legCmdPos(legNum,1) * legCmdPos(legNum,1) + legCmdPos(legNum,0) * legCmdPos(legNum,0) + legCmdPos(legNum,2) * legCmdPos(legNum,2) + L1 * L1 - L2 * L2 - L3 * L3) / ( 2 * L1 * sqrt (legCmdPos(legNum,1) * legCmdPos(legNum,1) +  legCmdPos(legNum,0) * legCmdPos(legNum,0) + legCmdPos(legNum,2) * legCmdPos(legNum,2) - L3 * L3)))
                     - atan2(sqrt(legCmdPos(legNum,1) * legCmdPos(legNum,1) + legCmdPos(legNum,2) * legCmdPos(legNum,2) - L3 * L3) , factor_x * legCmdPos(legNum,0)));
             joinCmdPos(legNum,2) = factor_zc * asin((L1 * L1 + L2 * L2 + L3 * L3 - legCmdPos(legNum,1) * legCmdPos(legNum,1) - legCmdPos(legNum,0) * legCmdPos(legNum,0) - legCmdPos(legNum,2) * legCmdPos(legNum,2)) / (2 * L1 * L2));
-            // for(int k=0;k<3;k++)
-            //     if( isnanf(joinCmdPos(legNum,k)) )
-            //         joinCmdPos(legNum,k) = 0;
 
         }
 }
@@ -349,7 +355,6 @@ IMPControl::IMPControl()
     K=mapK;
     B=mapB;
     M=mapM;
-    cout<<impdata<<endl;
 
     xc_dotdot.setZero();
     xc_dot.setZero();
@@ -372,7 +377,7 @@ void IMPControl::impdeliver(vector<float> present_torque)
     Matrix<float, 3, 4> temp;
     for(int i=0; i<3; i++)
         for(int j=0;j<4;j++)
-            temp(i ,j ) = present_torque[i*4+j];
+            temp(i ,j ) = present_torque[i+j*3];
     for (int i=0; i<4; i++)
         force.col(i) = jacobian_vector[i].transpose().inverse() * temp.col(i);
     //target_pos = legCmdPos;
@@ -390,8 +395,6 @@ void IMPControl::impdeliver(vector<float> present_torque)
  */
 void IMPControl::impCtller()
 {
-    Matrix<float, 4,3> matrix_temp;
-    // xc_dotdot = 0 + M/-1*( - footForce[i][0] + refForce[i] - B * (pstFootVel[i][0] - 0) - K * (pstFootPos[i][0] - targetFootPos(i,0)));
     xc_dotdot =  target_acc +M.cwiseInverse().cwiseProduct( ( target_force - force.transpose() + B.cwiseProduct(target_vel - ftsPstVel) +  K.cwiseProduct(target_pos - ftsPstPos)) ); //
     xc_dot =  ftsPstVel + xc_dotdot * (1/impCtlRate);
     xc =  ftsPstPos + 0.5 * (xc_dot * (1/impCtlRate));

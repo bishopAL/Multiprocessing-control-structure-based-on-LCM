@@ -33,9 +33,9 @@ public:
     void torqueDisable();
     void setPosition(vector<float> posVector);
     void setTorque(vector<float> torVector);
-    void getPosition();
-    void getVelocity();
-    void getTorque();
+    bool getPosition();
+    bool getVelocity();
+    bool getTorque();
     int torque2current(float tor);
     float current2torque(int current);
     vector<int> ID;

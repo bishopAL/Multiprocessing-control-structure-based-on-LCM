@@ -63,9 +63,7 @@ void *robotCommandUpdate(void *data)
     #ifdef _JOYSTICK
     int xbox_fd ;
     xbox_map_t map;
-    int len, type;
-    int axis_value, button_value;
-    int number_of_axis, number_of_buttons ;
+    int len;
     float vel = 0;
     float theta = 0;
     memset(&map, 0, sizeof(xbox_map_t));
@@ -91,13 +89,13 @@ void *robotCommandUpdate(void *data)
         TCV<<vel, 0.0, theta;
         
         cout<<TCV.transpose()<<", "<<-map.ly<<", "<<map.lx<<", "<<map.lt<<", "<<map.rt<<endl;
-        cout<<"LO: "<<map.lo<<",RO: "<<map.ro<<",XBOX_AXIS_XX: "<<map.xx<<",XBOX_AXIS_YY: "<<map.yy<<",XBOX_BUTTON_LB: "<<map.lb<<",XBOX_BUTTON_RB: "<<map.rb<<endl;
-        cout<<"XBOX_BUTTON_A: "<<map.a<<"XBOX_BUTTON_B: "<<map.b<<"XBOX_BUTTON_x: "<<map.x<<"XBOX_BUTTON_y: "<<map.y<<endl;
-        cout<<map.start<<", "<<map.back<<", "<<map.home<<endl;
+        // cout<<"LO: "<<map.lo<<",RO: "<<map.ro<<",XBOX_AXIS_XX: "<<map.xx<<",XBOX_AXIS_YY: "<<map.yy<<",XBOX_BUTTON_LB: "<<map.lb<<",XBOX_BUTTON_RB: "<<map.rb<<endl;
+        // cout<<"XBOX_BUTTON_A: "<<map.a<<"XBOX_BUTTON_B: "<<map.b<<"XBOX_BUTTON_x: "<<map.x<<"XBOX_BUTTON_y: "<<map.y<<endl;
+        // cout<<map.start<<", "<<map.back<<", "<<map.home<<endl;
         fflush(stdout);
         gettimeofday(&endTime,NULL);
         timeUse = 1e6*(endTime.tv_sec - startTime.tv_sec) + endTime.tv_usec - startTime.tv_usec;
-        cout<<"thread1: "<<timeUse<<endl;
+        //cout<<"thread1: "<<timeUse<<endl;
         usleep(1/loopRate1*1e6 - (double)(timeUse) - 10); // /* 1e4 / 1e6 = 0.01s */
     }
     #endif
@@ -176,9 +174,7 @@ void *robotStateUpdateSend(void *data)
     {
         
         // get motors data
-        motors.getTorque();
-        motors.getPosition();
-        motors.getVelocity();
+        while( motors.getTorque()==false || motors.getPosition()==false || motors.getVelocity()==false );
         // update the data IMP need
         imp.updateJointPstPos(motors.present_position);
         imp.updateJointPstVel(motors.present_velocity);
@@ -186,21 +182,6 @@ void *robotStateUpdateSend(void *data)
         //imp.updateFtsPstPos();
         imp.updateJacobians();
         imp.updateFtsPstVel();
-        cout<<"motor_now_angle_10"<<"  "<<motors.present_position[10] <<endl;
-        // for(int i=0; i<3; i++)
-        //     tau(i,0) = motors.present_torque[i];
-        // force = imp.jacobian_vector[0].transpose().inverse() * tau;
-        // // xc_dotdot = 0 + M/-1*( - footForce[i][0] + refForce[i] - B * (pstFootVel[i][0] - 0) - K * (pstFootPos[i][0] - targetFootPos(i,0)));
-        // xc_dotdot = 1/M*( -force.transpose() + B * (target_vel - imp.ftsPstVel.row(0)) +  K * (target_pos - imp.ftsPstPos.row(0))); //
-        // xc_dot =  imp.ftsPstVel.row(0) + xc_dotdot * 0.01;
-        // xc =  imp.ftsPstPos.row(0) + (xc_dot * 0.01);
-
-        // imp.legCmdPos.row(0) = xc;
-        // imp.inverseKinematics();
-
-        // for(int i=0; i<3; i++)
-        //     temp_pos[i] = imp.joinCmdPos(0,i);
-        // motors.setPosition(temp_pos);
 
         // imp.setCoMVel(TCV);
         // imp.nextStep();//
@@ -210,7 +191,8 @@ void *robotStateUpdateSend(void *data)
         imp.impCtller();
         cout<<"xc_dotdot: \n"<<imp.xc_dotdot<<"; \nxc_dot: \n"<<imp.xc_dot<<"; \nxc: \n"<<imp.xc<<endl;
         imp.inverseKinematics();
-        for(int i=0; i<4; i++)  //
+
+        for(int i=0; i<4; i++)  
             for(int j=0;j<3;j++)
             {
                 if( isnanf(imp.joinCmdPos(i,j)) )            
@@ -219,19 +201,26 @@ void *robotStateUpdateSend(void *data)
                     cout<<"-------------motor_angle_"<<i*3+j<<" NAN-----------"<<endl;
                 }
                 else
-                    temp_pos[i*3+j] = imp.joinCmdPos(i,j);
+                {
+                    if(imp.joinCmdPos(i,j) - temp_pos[i*3+j] > MORTOR_ANGLE_AMP)
+                    {
+                        temp_pos[i*3+j] += MORTOR_ANGLE_AMP;
+                        cout<<"-------------motor_angle_"<<i*3+j<<" +MAX-----------"<<endl;
+                    }
+                    else if(imp.joinCmdPos(i,j) - temp_pos[i*3+j] < -MORTOR_ANGLE_AMP)
+                    {
+                        temp_pos[i*3+j] -= MORTOR_ANGLE_AMP;
+                        cout<<"-------------motor_angle_"<<i*3+j<<" -MAX-----------"<<endl;
+                    }
+                    else 
+                        temp_pos[i*3+j] = imp.joinCmdPos(i,j);
+                }
 
-                if(temp_pos[i*3+j] - imp.joinCmdPos(i,j) > MORTOR_ANGLE_AMP)
-                    temp_pos[i*3+j] = imp.joinCmdPos(i,j) + MORTOR_ANGLE_AMP;
-                if(temp_pos[i*3+j] - imp.joinCmdPos(i,j) < -MORTOR_ANGLE_AMP)
-                    temp_pos[i*3+j] = imp.joinCmdPos(i,j) - MORTOR_ANGLE_AMP;
                 cout<<"motor_angle_"<<i*3+j<<"  "<<temp_pos[i*3+j] <<endl;
             }
-        cout<<"motor_cmdangle_10"<<"  "<<temp_pos[10] <<endl;
+        //cout<<"motor_cmdangle_10"<<"  "<<temp_pos[10] <<endl;
         cout<<endl;
         motors.setPosition(temp_pos);     
-        
-        
 
        //test time
     //    struct timeval startTime, endTime1,endTime2;
