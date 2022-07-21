@@ -102,7 +102,7 @@ void MotionControl::updateJacobians()
             factor_y = -1;
             factor_z = 1;
             factor_s12 = -1;
-            factor_s0 = 1;
+            factor_s0 = -1;
         }
         else if(legNum==2 )          //LH    
         {
@@ -197,7 +197,7 @@ void MotionControl::forwardKinematics(int mode)
             factor_y = -1;
             factor_z = 1;
             factor_s12 = -1;
-            factor_s0 = 1;
+            factor_s0 = -1;
         }
         else if(legNum==2 )          //LH    
         {
@@ -231,7 +231,7 @@ void MotionControl::forwardKinematics(int mode)
 
 }
 
-void MotionControl::inverseKinematics()
+void MotionControl::inverseKinematics(Matrix<float, 4, 3> cmdpos)
 {
     for(uint8_t legNum=0; legNum<4; legNum++)  // LF RF LH RH
         {
@@ -268,10 +268,10 @@ void MotionControl::inverseKinematics()
                 factor_x= 1;
                 factor_y= -1;
             }
-            joinCmdPos(legNum,0) = factor_xc * (asin(L3 / sqrt( legCmdPos(legNum,2)*legCmdPos(legNum,2) + legCmdPos(legNum,1)*legCmdPos(legNum,1) )) + atan2(legCmdPos(legNum,2),factor_y * legCmdPos(legNum,1)) );     
-            joinCmdPos(legNum,1) = factor_yc * (asin((legCmdPos(legNum,1) * legCmdPos(legNum,1) + legCmdPos(legNum,0) * legCmdPos(legNum,0) + legCmdPos(legNum,2) * legCmdPos(legNum,2) + L1 * L1 - L2 * L2 - L3 * L3) / ( 2 * L1 * sqrt (legCmdPos(legNum,1) * legCmdPos(legNum,1) +  legCmdPos(legNum,0) * legCmdPos(legNum,0) + legCmdPos(legNum,2) * legCmdPos(legNum,2) - L3 * L3)))
-                    - atan2(sqrt(legCmdPos(legNum,1) * legCmdPos(legNum,1) + legCmdPos(legNum,2) * legCmdPos(legNum,2) - L3 * L3) , factor_x * legCmdPos(legNum,0)));
-            joinCmdPos(legNum,2) = factor_zc * asin((L1 * L1 + L2 * L2 + L3 * L3 - legCmdPos(legNum,1) * legCmdPos(legNum,1) - legCmdPos(legNum,0) * legCmdPos(legNum,0) - legCmdPos(legNum,2) * legCmdPos(legNum,2)) / (2 * L1 * L2));
+            joinCmdPos(legNum,0) = factor_xc * (asin(L3 / sqrt( cmdpos(legNum,2)*cmdpos(legNum,2) + cmdpos(legNum,1)*cmdpos(legNum,1) )) + atan2(cmdpos(legNum,2),factor_y * cmdpos(legNum,1)) );     
+            joinCmdPos(legNum,1) = factor_yc * (asin((cmdpos(legNum,1) * cmdpos(legNum,1) + cmdpos(legNum,0) * cmdpos(legNum,0) + cmdpos(legNum,2) * cmdpos(legNum,2) + L1 * L1 - L2 * L2 - L3 * L3) / ( 2 * L1 * sqrt (cmdpos(legNum,1) * cmdpos(legNum,1) +  cmdpos(legNum,0) * cmdpos(legNum,0) + cmdpos(legNum,2) * cmdpos(legNum,2) - L3 * L3)))
+                    - atan2(sqrt(cmdpos(legNum,1) * cmdpos(legNum,1) + cmdpos(legNum,2) * cmdpos(legNum,2) - L3 * L3) , factor_x * cmdpos(legNum,0)));
+            joinCmdPos(legNum,2) = factor_zc * asin((L1 * L1 + L2 * L2 + L3 * L3 - cmdpos(legNum,1) * cmdpos(legNum,1) - cmdpos(legNum,0) * cmdpos(legNum,0) - cmdpos(legNum,2) * cmdpos(legNum,2)) / (2 * L1 * L2));
 
         }
 }
@@ -380,7 +380,7 @@ void IMPControl::impdeliver(vector<float> present_torque)
             temp(i ,j ) = present_torque[i+j*3];
     for (int i=0; i<4; i++)
         force.col(i) = jacobian_vector[i].transpose().inverse() * temp.col(i);
-    //target_pos = legCmdPos;
+    target_pos = legCmdPos;
     
     // target_vel << 
     // 0.01, 0.01, 0.01, 0.01,
@@ -398,7 +398,7 @@ void IMPControl::impCtller()
     xc_dotdot =  target_acc +M.cwiseInverse().cwiseProduct( ( target_force - force.transpose() + B.cwiseProduct(target_vel - ftsPstVel) +  K.cwiseProduct(target_pos - ftsPstPos)) ); //
     xc_dot =  ftsPstVel + xc_dotdot * (1/impCtlRate);
     xc =  ftsPstPos + 0.5 * (xc_dot * (1/impCtlRate));
-    legCmdPos = xc;
+    //legCmdPos = xc;
 }
 
 /**

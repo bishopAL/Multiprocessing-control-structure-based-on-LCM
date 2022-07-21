@@ -25,17 +25,15 @@ using namespace std;
 #define INIMODE 2
 #define _JOYSTICK 1
 #define MORTOR_ANGLE_AMP 20*3.14/180.0
-#define loopRate1 100   //hz
+#define loopRateCommandUpdate 100   //hz
+#define loopRateStateUpdateSend 20   //hz
 
 lcm::LCM Lcm;
 robotCommand::robotCommand rc;
 robotState::robotState rs;
-//MotionControl mc;
 IMPControl imp;
-
-Matrix<float, 3, 1> force;
-Matrix<float, 3, 1> tau;
 ImpParaHandler ipHandle;
+
 vector<int> ID = {  
 0,1,2,
 3, 4, 5,
@@ -43,20 +41,13 @@ vector<int> ID = {
 ,9,10,11
 };
 DxlAPI motors("/dev/ttyAMA0", 1000000, ID, 1);  //3000000  cannot hold 6 legs
-Matrix<float, 1, 3> target_pos;
-Matrix<float, 1, 3> target_vel;
-Matrix<float, 1, 3> target_acc;
-Matrix<float, 1, 3> xc_dotdot;
-Matrix<float, 1, 3> xc_dot;
-Matrix<float, 1, 3> xc;
-vector<float> temp_pos(12);
 
 float TimePeriod = 0.01;
 float TimeForGaitPeriod = 0.49;
 Matrix<float, 4, 2>TimeForStancePhase ;
 Matrix<float, 4, 3> InitPos;
 Vector<float, 3> TCV={0, 0, 0 };// X, Y , alpha 
-
+vector<float> SetPos(12);
 
 void *robotCommandUpdate(void *data)
 {
@@ -96,7 +87,7 @@ void *robotCommandUpdate(void *data)
         gettimeofday(&endTime,NULL);
         timeUse = 1e6*(endTime.tv_sec - startTime.tv_sec) + endTime.tv_usec - startTime.tv_usec;
         //cout<<"thread1: "<<timeUse<<endl;
-        usleep(1/loopRate1*1e6 - (double)(timeUse) - 10); // /* 1e4 / 1e6 = 0.01s */
+        usleep(1/loopRateCommandUpdate*1e6 - (double)(timeUse) - 10); // /* 1e4 / 1e6 = 0.01s */
     }
     #endif
     // while(0 == Lcm.handle());
@@ -133,7 +124,7 @@ void *robotStateUpdateSend(void *data)
     //imp initial
     TimePeriod = 0.01;
     TimeForGaitPeriod = 0.49;
-    TCV<< 20.0/1000, 0, 0;// X, Y , alpha     mm
+    TCV<< 10.0/1000, 0, 0;// X, Y , alpha     mm
     TimeForStancePhase << 0, 0.24, 0.25, 0.49, 0.25, 0.49, 0, 0.24;
     imp.setPhase(TimePeriod, TimeForGaitPeriod, TimeForStancePhase);
     //InitPos << 3.0, 0.0, -225.83, 3.0, 0.0, -225.83, -20.0, 0.0, -243.83, -20.0, 0.0, -243.83; //xyz
@@ -150,29 +141,29 @@ void *robotStateUpdateSend(void *data)
 #endif
 
     imp.setCoMVel(TCV);
-    imp.inverseKinematics();
+    imp.inverseKinematics(imp.legCmdPos);
 #if(INIMODE==2)  
     for(int i=0; i<4; i++)
         for(int j=0;j<3;j++)
         {
            
-            temp_pos[i*3+j] = imp.joinCmdPos(i,j);
-            cout<<"temp_pos:"<<temp_pos[i*3+j] <<endl;
-            if( isnanf(temp_pos[i*3+j]) )
-                temp_pos[i*3+j] = 0;
+            SetPos[i*3+j] = imp.joinCmdPos(i,j);
+            cout<<"SetPos:"<<SetPos[i*3+j] <<endl;
+            if( isnanf(SetPos[i*3+j]) )
+                SetPos[i*3+j] = 0;
         }
-    motors.setPosition(temp_pos);     
+    motors.setPosition(SetPos);     
 #endif
 
 
-    // imp.updateJointPstPos(motors.present_position);
-    // imp.updateFtsPstPos();
-    // target_pos = imp.ftsPstPos.row(0);
+
     imp.target_pos = imp.legCmdPos;
     usleep(1e6);
     while(1)
     {
-        
+        struct timeval startTime,endTime;
+        double timeUse;
+        gettimeofday(&startTime,NULL);
         // get motors data
         while( motors.getTorque()==false || motors.getPosition()==false || motors.getVelocity()==false );
         // update the data IMP need
@@ -183,70 +174,54 @@ void *robotStateUpdateSend(void *data)
         imp.updateJacobians();
         imp.updateFtsPstVel();
 
-        // imp.setCoMVel(TCV);
-        // imp.nextStep();//
+        imp.setCoMVel(TCV);
+        imp.nextStep();//
         // cout<<"legCmdPos:\n"<<imp.legCmdPos<<endl;
+
+
 
         imp.impdeliver(motors.present_torque);  
         imp.impCtller();
         cout<<"xc_dotdot: \n"<<imp.xc_dotdot<<"; \nxc_dot: \n"<<imp.xc_dot<<"; \nxc: \n"<<imp.xc<<endl;
-        imp.inverseKinematics();
+        imp.inverseKinematics(imp.xc);
 
         for(int i=0; i<4; i++)  
             for(int j=0;j<3;j++)
             {
                 if( isnanf(imp.joinCmdPos(i,j)) )            
                 {
-                    imp.joinCmdPos(i,j) = temp_pos[i*3+j];//last
+                    imp.joinCmdPos(i,j) = SetPos[i*3+j];//last
                     cout<<"-------------motor_angle_"<<i*3+j<<" NAN-----------"<<endl;
                 }
                 else
                 {
-                    if(imp.joinCmdPos(i,j) - temp_pos[i*3+j] > MORTOR_ANGLE_AMP)
+                    if(imp.joinCmdPos(i,j) - SetPos[i*3+j] > MORTOR_ANGLE_AMP)
                     {
-                        temp_pos[i*3+j] += MORTOR_ANGLE_AMP;
+                        SetPos[i*3+j] += MORTOR_ANGLE_AMP;
                         cout<<"-------------motor_angle_"<<i*3+j<<" +MAX-----------"<<endl;
                     }
-                    else if(imp.joinCmdPos(i,j) - temp_pos[i*3+j] < -MORTOR_ANGLE_AMP)
+                    else if(imp.joinCmdPos(i,j) - SetPos[i*3+j] < -MORTOR_ANGLE_AMP)
                     {
-                        temp_pos[i*3+j] -= MORTOR_ANGLE_AMP;
+                        SetPos[i*3+j] -= MORTOR_ANGLE_AMP;
                         cout<<"-------------motor_angle_"<<i*3+j<<" -MAX-----------"<<endl;
                     }
                     else 
-                        temp_pos[i*3+j] = imp.joinCmdPos(i,j);
+                        SetPos[i*3+j] = imp.joinCmdPos(i,j);
                 }
 
-                cout<<"motor_angle_"<<i*3+j<<"  "<<temp_pos[i*3+j] <<endl;
+                cout<<"motor_angle_"<<i*3+j<<"  "<<SetPos[i*3+j] <<endl;
             }
-        //cout<<"motor_cmdangle_10"<<"  "<<temp_pos[10] <<endl;
+        //cout<<"motor_cmdangle_10"<<"  "<<SetPos[10] <<endl;
         cout<<endl;
-        motors.setPosition(temp_pos);     
+        motors.setPosition(SetPos);     
 
-       //test time
-    //    struct timeval startTime, endTime1,endTime2;
-    //    double timeUse1,timeUse2;
-    //    gettimeofday(&startTime,NULL);
-
-    //     motors.getTorque();
-    //     motors.getPosition();
-    //     motors.getVelocity();
-    //     gettimeofday(&endTime1,NULL);
-    //     timeUse1 = 1000000*(endTime1.tv_sec - startTime.tv_sec) + endTime1.tv_usec - startTime.tv_usec;
-    //     for(int i=0; i<4; i++)
-    //         for(int j=0;j<3;j++)
-    //             temp_pos[i*3+j] = 0;
-    //     motors.setPosition(temp_pos);     
-    //     gettimeofday(&endTime2,NULL);
-    //     timeUse2 = 1000000*(endTime2.tv_sec - startTime.tv_sec) + endTime2.tv_usec - startTime.tv_usec;
-    //     cout<<"timeUse1:"<<timeUse1<<"timeUse2:"<<timeUse2<<endl;
-
-    //     rs.F[0] = 0;
-    //     rs.endPos[0] = 0;
-    //     rs.endVel[0] = 0;
-    //     Lcm.publish("ROBOTSTATE", &rs);
-
-        usleep(1e4);
+        gettimeofday(&endTime,NULL);
+        timeUse = 1e6*(endTime.tv_sec - startTime.tv_sec) + endTime.tv_usec - startTime.tv_usec;
+        cout<<"thread2: "<<timeUse<<endl;
+        if(timeUse < 1e4)
+            usleep(1/loopRateStateUpdateSend*1e6 - (double)(timeUse) - 10); // /* 1e4 / 1e6 = 0.01s */
     }
+    
 }
 
 int main(int argc, char ** argv)
@@ -255,12 +230,12 @@ int main(int argc, char ** argv)
 
     pthread_t th1, th2;
 	int ret;
-	ret = pthread_create(&th1,NULL,robotCommandUpdate,NULL);
-    if(ret != 0)
-	{
-		printf("create pthread1 error!\n");
-		exit(1);
-	}
+	// ret = pthread_create(&th1,NULL,robotCommandUpdate,NULL);
+    // if(ret != 0)
+	// {
+	// 	printf("create pthread1 error!\n");
+	// 	exit(1);
+	// }
     ret = pthread_create(&th2,NULL,robotStateUpdateSend,NULL);
     if(ret != 0)
 	{
@@ -268,7 +243,7 @@ int main(int argc, char ** argv)
 		exit(1);
 	}
 	
-	pthread_join(th1, NULL);
+	//pthread_join(th1, NULL);
     pthread_join(th2, NULL);
     while(1);
 
