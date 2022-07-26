@@ -1,5 +1,33 @@
 #include "robotMotionControl.h"
 
+/**
+ * @brief 
+ * Open the file to read float data to dest.    
+ * In the file, ',' must be used after every data, including the last data.  
+ * @param add The address of the file to read, like "../include/init_Motor_angle.csv"
+ * @param dest Floating pointer to store datas.
+ */
+void string2float(string add, float* dest)
+{
+    char data_char[8000],*char_float;
+    const char *a=",";  //Separate datas
+    int i=0;
+    ifstream inidata;
+
+    inidata.open(add);
+    if (inidata)    cout<<"file open Successful"<<endl;
+    else    cout<<"file open FAIL"<<endl;
+    inidata.read(data_char,8000);
+    char_float=strtok(data_char, a);
+    while(char_float!=NULL)
+    {        
+        dest[i++] = stof(char_float);
+        //cout<<'|'<<dest[i-1]<<endl;
+        char_float=strtok(NULL, a);
+    }
+    inidata.close();
+}
+
 MotionControl::MotionControl()
 {
     Matrix<float, 3, 3> temp;
@@ -316,12 +344,13 @@ void MotionControl::nextStep()
             
             for(uint8_t pos=0; pos<3; pos++)
                 legCmdPos(legNum, pos) = legCmdPos(legNum, pos) - swingPhaseVelocity(pos) * timePeriod;
-            
-            if( ( timePresentForSwing(legNum) - (timeForGaitPeriod - (timeForStancePhase(legNum,1) - timeForStancePhase(legNum,0)))/2 ) > 1e-4)
-                legCmdPos(legNum, 2) -= 2.0/1000;
+
             if( ( timePresentForSwing(legNum) - (timeForGaitPeriod - (timeForStancePhase(legNum,1) - timeForStancePhase(legNum,0)))/2 ) < -1e-4 
                 && timePresentForSwing(legNum) > 1e-4)
                 legCmdPos(legNum, 2) += 2.0/1000;
+            if( ( timePresentForSwing(legNum) - (timeForGaitPeriod - (timeForStancePhase(legNum,1) - timeForStancePhase(legNum,0)))/2 ) > 1e-4)
+                legCmdPos(legNum, 2) -= 2.0/1000;
+
             stanceFlag(legNum) = false;
         }
     }
@@ -337,7 +366,7 @@ void MotionControl::nextStep()
         else timePresentForSwing(leg) = 0;
     }
 
-    if (abs(timePresent - timeForGaitPeriod - timePeriod) < 1e-4)  // check if present time has reach the gait period                                                               
+    if (abs(timePresent - timeForGaitPeriod ) < 1e-4)  // check if present time has reach the gait period                                                               
     {                                                            // if so, set it to 0.0
         timePresent = 0.0;
     }
@@ -349,12 +378,14 @@ void MotionControl::nextStep()
 
 IMPControl::IMPControl()
 {
-    float impdata[100];
-    string2float("../include/imp_parameter.csv",impdata);
-    Map<Matrix<float, 4, 3, RowMajor>> mapK(impdata), mapB(impdata +12), mapM(impdata +24);
-    K=mapK;
-    B=mapB;
-    M=mapM;
+    float impdata[200];
+    string2float("../include/imp_parameter.csv",impdata);   //0-stance, 1-swing, 2-desorption, 3-adhesion
+    //Map<Matrix<float, 4, 3, RowMajor>> mapK(impdata), mapB(impdata + 12 * 1), mapM(impdata + 12 * 2);
+    for(int i=0; i<4; i++)
+    {
+        Map<Matrix<float, 4, 3, RowMajor>> mapK(impdata + 12 * i), mapB(impdata + 12 + 12 * i), mapM(impdata  + 24 + 12 * i);
+        impChangePara(mapK,mapB,mapM, 0);
+    } 
 
     xc_dotdot.setZero();
     xc_dot.setZero();
@@ -395,7 +426,27 @@ void IMPControl::impdeliver(vector<float> present_torque)
  */
 void IMPControl::impCtller()
 {
-    xc_dotdot =  target_acc +M.cwiseInverse().cwiseProduct( ( target_force - force.transpose() + B.cwiseProduct(target_vel - ftsPstVel) +  K.cwiseProduct(target_pos - ftsPstPos)) ); //
+    for(uint8_t legNum=0; legNum<4; legNum++)
+    {   
+        if(stanceFlag(legNum) == 0) //swing
+        {
+            //desorption
+            if( ( timePresentForSwing(legNum) - 0.04 ) < 1e-4 && timePresentForSwing(legNum) > 1e-4)
+                xc_dotdot =  target_acc +M_desorption.cwiseInverse().cwiseProduct( ( target_force - force.transpose() + B_desorption.cwiseProduct(target_vel - ftsPstVel) +  K_desorption.cwiseProduct(target_pos - ftsPstPos)) ); 
+            //adhesion
+            else if( ( timePresentForSwing(legNum) - (timeForGaitPeriod - (timeForStancePhase(legNum,1) - timeForStancePhase(legNum,0)) - 0.04) ) > -1e-4 )
+                xc_dotdot =  target_acc +M_adhesion.cwiseInverse().cwiseProduct( ( target_force - force.transpose() + B_adhesion.cwiseProduct(target_vel - ftsPstVel) +  K_adhesion.cwiseProduct(target_pos - ftsPstPos)) ); 
+            else
+                xc_dotdot =  target_acc +M_swing.cwiseInverse().cwiseProduct( ( target_force - force.transpose() + B_swing.cwiseProduct(target_vel - ftsPstVel) +  K_swing.cwiseProduct(target_pos - ftsPstPos)) ); 
+            
+        }
+        else                        //stance
+        {
+            xc_dotdot =  target_acc +M_stance.cwiseInverse().cwiseProduct( ( target_force - force.transpose() + B_stance.cwiseProduct(target_vel - ftsPstVel) +  K_stance.cwiseProduct(target_pos - ftsPstPos)) ); 
+
+        }
+
+    }
     xc_dot =  ftsPstVel + xc_dotdot * (1/impCtlRate);
     xc =  ftsPstPos + 0.5 * (xc_dot * (1/impCtlRate));
     //legCmdPos = xc;
@@ -403,28 +454,29 @@ void IMPControl::impCtller()
 
 /**
  * @brief 
- * Open the file to read float data to dest.    
- * In the file, ',' must be used after every data and must be the last character.  
- * @param add The address of the file to read, like "../include/init_Motor_angle.csv"
- * @param dest Floating pointer to store datas.
+ * Change parameters ofimp
+ * @param mK K of impCtller
+ * @param mB B of impCtller
+ * @param mM M of impCtller
+ * @param mode 
+ * 0-stance, 1-swing, 2-desorption, 3-adhesion
  */
-void string2float(string add, float* dest)
+void IMPControl::impChangePara(Matrix<float, 4, 3> mK, Matrix<float, 4, 3> mB, Matrix<float, 4, 3> mM, int mode)
 {
-    char data_char[8000],*char_float;
-    const char *a=",";  //Separate datas
-    int i=0;
-    ifstream inidata;
-
-    inidata.open(add);
-    if (inidata)    cout<<"file open Successful"<<endl;
-    else    cout<<"file open FAIL"<<endl;
-    inidata.read(data_char,1000);
-    char_float=strtok(data_char, a);
-    while(char_float!=NULL)
-    {        
-        dest[i++] = stof(char_float);
-        //cout<<'|'<<dest[i-1]<<endl;
-        char_float=strtok(NULL, a);
+    switch(mode) 
+    {
+        case 0:
+            K_stance = mK; B_stance = mB; M_stance = mM;
+            break;
+        case 1:
+            K_swing = mK; B_swing = mB; M_swing = mM;
+            break;
+        case 2:
+            K_desorption = mK; B_desorption = mB; M_desorption = mM;
+            break;
+        case 3:
+            K_adhesion = mK; B_adhesion = mB; M_adhesion = mM;   
+            break; 
     }
-    inidata.close();
+
 }

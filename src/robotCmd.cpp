@@ -156,6 +156,17 @@ void *robotStateUpdateSend(void *data)
 #endif
 
 
+    ofstream outputfile;
+
+    outputfile.open("../include/output.csv");
+    for(int i=0; i<4; i++)
+    {
+        for(int j=0;j<3;j++)
+            outputfile<<imp.joinCmdPos(i,j)<<" ";
+        outputfile<<endl;
+    }
+    outputfile.close();
+
 
     imp.target_pos = imp.legCmdPos;
     usleep(1e6);
@@ -177,8 +188,6 @@ void *robotStateUpdateSend(void *data)
         imp.setCoMVel(TCV);
         imp.nextStep();//
         // cout<<"legCmdPos:\n"<<imp.legCmdPos<<endl;
-
-
 
         imp.impdeliver(motors.present_torque);  
         imp.impCtller();
@@ -217,9 +226,11 @@ void *robotStateUpdateSend(void *data)
 
         gettimeofday(&endTime,NULL);
         timeUse = 1e6*(endTime.tv_sec - startTime.tv_sec) + endTime.tv_usec - startTime.tv_usec;
-        cout<<"thread2: "<<timeUse<<endl;
         if(timeUse < 1e4)
             usleep(1/loopRateStateUpdateSend*1e6 - (double)(timeUse) - 10); // /* 1e4 / 1e6 = 0.01s */
+        else
+            cout<<"thread2: "<<timeUse<<endl;
+
     }
     
 }

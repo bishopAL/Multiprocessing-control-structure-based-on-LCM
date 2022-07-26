@@ -97,13 +97,14 @@ class IMPControl : public MotionControl
         Matrix<float, 4, 3> xc;
         Matrix<float, 3, 4> force;              // force feedback   x y z ; LF RF LH RH
         Matrix<float, 4, 3> target_force;
-        Matrix<float, 4, 3> K;                     //LF RF LH RH
-        Matrix<float, 4, 3> B;
-        Matrix<float, 4, 3> M;
+        Matrix<float, 4, 3> K_swing, K_stance, K_desorption, K_adhesion;                     //LF RF LH RH
+        Matrix<float, 4, 3> B_swing, B_stance, B_desorption, B_adhesion;
+        Matrix<float, 4, 3> M_swing, M_stance, M_desorption, M_adhesion;
         float impCtlRate;
 
         void impdeliver(vector<float>present_torque);
         void impCtller();
+        void impChangePara(Matrix<float, 4, 3> mK, Matrix<float, 4, 3> mB, Matrix<float, 4, 3> mM, int mode);
         IMPControl();
 };
 
