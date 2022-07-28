@@ -180,16 +180,10 @@ void *robotStateUpdateSend(void *data)
         double timeUse;
         gettimeofday(&startTime,NULL);
 
-        // imp.nextStep();//
-        // // cout<<"legCmdPos:\n"<<imp.legCmdPos<<endl;
-        // imp.impParaDeliver();
-
-        // imp.impFeedback(motors.present_torque); 
-        // imp.impCtller();
-        // cout<<"xc_dotdot: \n"<<imp.xc_dotdot<<"; \nxc_dot: \n"<<imp.xc_dot<<"; \nxc: \n"<<imp.xc<<endl;
-        // imp.inverseKinematics(imp.xc);
-        // //imp.inverseKinematics(imp.legCmdPos);
-        // motors.setPosition(SetPos);     
+        //If stay static, annotate below three lines.
+        imp.nextStep();//
+        // cout<<"legCmdPos:\n"<<imp.legCmdPos<<endl;
+        imp.impParaDeliver();
 
         gettimeofday(&endTime,NULL);
         timeUse = 1e6*(endTime.tv_sec - startTime.tv_sec) + endTime.tv_usec - startTime.tv_usec;
