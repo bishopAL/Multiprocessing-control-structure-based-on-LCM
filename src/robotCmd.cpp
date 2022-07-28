@@ -28,7 +28,7 @@ using namespace std;
 #define loopRateCommandUpdate 100.0   //hz
 #define loopRateStateUpdateSend 20.0   //hz
 #define loopRateImpCtller 100.0   //hz
-#define VELX 10.0/1000
+#define VELX 5.0/1000
 
 lcm::LCM Lcm;
 robotCommand::robotCommand rc;
@@ -128,9 +128,13 @@ void *robotStateUpdateSend(void *data)
     motors.setPosition(init_Motor_angle);
 #endif    
     
-    
+    float GaitTime = TimePeriod + TimeForGaitPeriod;
     //imp initial
-    TimeForStancePhase<< 0, 0.24, 0.25, 0.49, 0.25, 0.49, 0, 0.24;
+    //TimeForStancePhase<< 0, 0.24, 0.25, 0.49, 0.25, 0.49, 0, 0.24;
+    TimeForStancePhase<< GaitTime/4.0 *3,   GaitTime/4.0 *2 - TimePeriod,
+                         GaitTime/4.0,      GaitTime - TimePeriod,
+                         GaitTime,          GaitTime/4.0 *3 - TimePeriod,
+                         GaitTime/4.0 *2,   GaitTime/4.0 - TimePeriod;
     imp.setPhase(TimePeriod, TimeForGaitPeriod, TimeForStancePhase);
     //InitPos << 3.0, 0.0, -225.83, 3.0, 0.0, -225.83, -20.0, 0.0, -243.83, -20.0, 0.0, -243.83; //xyz
 #if(INIMODE==2)
@@ -235,7 +239,7 @@ void *runImpCtller(void *data)
         // Lcm.publish("IMPTAR", &ip);
 
         imp.impCtller();
-        cout<<"xc_dotdot: \n"<<imp.xc_dotdot<<"; \nxc_dot: \n"<<imp.xc_dot<<"; \nxc: \n"<<imp.xc<<endl;
+        //cout<<"xc_dotdot: \n"<<imp.xc_dotdot<<"; \nxc_dot: \n"<<imp.xc_dot<<"; \nxc: \n"<<imp.xc<<endl;
         imp.inverseKinematics(imp.xc);
 
         for(int i=0; i<4; i++)  
@@ -262,7 +266,7 @@ void *runImpCtller(void *data)
                     else 
                         SetPos[i*3+j] = imp.joinCmdPos(i,j);
                 }
-                cout<<"motor_angle_"<<i*3+j<<"  "<<SetPos[i*3+j] <<endl;
+                //cout<<"motor_angle_"<<i*3+j<<"  "<<SetPos[i*3+j] <<endl;
             }   
         motors.setPosition(SetPos); 
 
