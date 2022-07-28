@@ -341,15 +341,15 @@ void MotionControl::nextStep()
         {
             Matrix<float, 1, 3> swingPhaseVelocity = (stancePhaseEndPos.row(legNum) - stancePhaseStartPos.row(legNum)) / 
                                         (timeForGaitPeriod - (timeForStancePhase(legNum,1) - timeForStancePhase(legNum,0)) - timePeriod);
-            
+            float timeForSwing = (timeForGaitPeriod - (timeForStancePhase(legNum,1) - timeForStancePhase(legNum,0)));
             for(uint8_t pos=0; pos<3; pos++)
                 legCmdPos(legNum, pos) = legCmdPos(legNum, pos) - swingPhaseVelocity(pos) * timePeriod;
 
-            if( ( timePresentForSwing(legNum) - (timeForGaitPeriod - (timeForStancePhase(legNum,1) - timeForStancePhase(legNum,0)))/2 ) < -1e-4 
+            if( ( timePresentForSwing(legNum) - timeForSwing/2 ) < -1e-4 
                 && timePresentForSwing(legNum) > 1e-4)
-                legCmdPos(legNum, 2) += 2.0/1000;
-            if( ( timePresentForSwing(legNum) - (timeForGaitPeriod - (timeForStancePhase(legNum,1) - timeForStancePhase(legNum,0)))/2 ) > 1e-4)
-                legCmdPos(legNum, 2) -= 2.0/1000;
+                legCmdPos(legNum, 2) += 18.0/1000 / timeForSwing * timePeriod;
+            if( ( timePresentForSwing(legNum) - timeForSwing/2 ) > 1e-4)
+                legCmdPos(legNum, 2) -= 18.0/1000 / timeForSwing * timePeriod;
 
             stanceFlag(legNum) = false;
         }
@@ -383,8 +383,8 @@ IMPControl::IMPControl()
     //Map<Matrix<float, 4, 3, RowMajor>> mapK(impdata), mapB(impdata + 12 * 1), mapM(impdata + 12 * 2);
     for(int i=0; i<4; i++)
     {
-        Map<Matrix<float, 4, 3, RowMajor>> mapK(impdata + 12 * i), mapB(impdata + 12 + 12 * i), mapM(impdata  + 24 + 12 * i);
-        impChangePara(mapK,mapB,mapM, 0);
+        Map<Matrix<float, 4, 3, RowMajor>> mapK(impdata + 36 * i), mapB(impdata + 12 + 36 * i), mapM(impdata  + 24 + 36 * i);
+        impChangePara(mapK,mapB,mapM, i);
     } 
 
     xc_dotdot.setZero();
@@ -399,18 +399,26 @@ IMPControl::IMPControl()
 
 /**
  * @brief 
- * Deliver parameter to impCtller.
- * (target_pos = legCmdPos)
- * @param present_torque update force with present_torque
+ * Calcute feedback force for impCtller.
+ * @param torque update force with present_torque
  */
-void IMPControl::impdeliver(vector<float> present_torque)
+void IMPControl::impFeedback(vector<float> torque)
 {
     Matrix<float, 3, 4> temp;
     for(int i=0; i<3; i++)
         for(int j=0;j<4;j++)
-            temp(i ,j ) = present_torque[i+j*3];
+            temp(i ,j ) = torque[i+j*3];
     for (int i=0; i<4; i++)
         force.col(i) = jacobian_vector[i].transpose().inverse() * temp.col(i);
+
+}
+
+/**
+ * @brief 
+ * Deliver parameter to impCtller.
+ */
+void IMPControl::impParaDeliver()
+{
     target_pos = legCmdPos;
     
     // target_vel << 
@@ -432,18 +440,25 @@ void IMPControl::impCtller()
         {
             //desorption
             if( ( timePresentForSwing(legNum) - 0.04 ) < 1e-4 && timePresentForSwing(legNum) > 1e-4)
-                xc_dotdot =  target_acc +M_desorption.cwiseInverse().cwiseProduct( ( target_force - force.transpose() + B_desorption.cwiseProduct(target_vel - ftsPstVel) +  K_desorption.cwiseProduct(target_pos - ftsPstPos)) ); 
+                xc_dotdot.row(legNum) =  target_acc.row(legNum) +M_desorption.row(legNum).cwiseInverse().cwiseProduct( ( target_force.row(legNum) - force.transpose().row(legNum) 
+                + B_desorption.row(legNum).cwiseProduct(target_vel.row(legNum) - ftsPstVel.row(legNum)) 
+                + K_desorption.row(legNum).cwiseProduct(target_pos.row(legNum) - ftsPstPos.row(legNum))) ); 
             //adhesion
             else if( ( timePresentForSwing(legNum) - (timeForGaitPeriod - (timeForStancePhase(legNum,1) - timeForStancePhase(legNum,0)) - 0.04) ) > -1e-4 )
-                xc_dotdot =  target_acc +M_adhesion.cwiseInverse().cwiseProduct( ( target_force - force.transpose() + B_adhesion.cwiseProduct(target_vel - ftsPstVel) +  K_adhesion.cwiseProduct(target_pos - ftsPstPos)) ); 
+                xc_dotdot.row(legNum) =  target_acc.row(legNum) +M_adhesion.row(legNum).cwiseInverse().cwiseProduct( ( target_force.row(legNum) - force.transpose().row(legNum) 
+                + B_adhesion.row(legNum).cwiseProduct(target_vel.row(legNum) - ftsPstVel.row(legNum)) 
+                + K_adhesion.row(legNum).cwiseProduct(target_pos.row(legNum) - ftsPstPos.row(legNum))) );
             else
-                xc_dotdot =  target_acc +M_swing.cwiseInverse().cwiseProduct( ( target_force - force.transpose() + B_swing.cwiseProduct(target_vel - ftsPstVel) +  K_swing.cwiseProduct(target_pos - ftsPstPos)) ); 
+                xc_dotdot.row(legNum) =  target_acc.row(legNum) +M_swing.row(legNum).cwiseInverse().cwiseProduct( ( target_force.row(legNum) - force.transpose().row(legNum) 
+                + B_swing.row(legNum).cwiseProduct(target_vel.row(legNum) - ftsPstVel.row(legNum)) 
+                + K_swing.row(legNum).cwiseProduct(target_pos.row(legNum) - ftsPstPos.row(legNum))) ); 
             
         }
         else                        //stance
         {
-            xc_dotdot =  target_acc +M_stance.cwiseInverse().cwiseProduct( ( target_force - force.transpose() + B_stance.cwiseProduct(target_vel - ftsPstVel) +  K_stance.cwiseProduct(target_pos - ftsPstPos)) ); 
-
+                xc_dotdot.row(legNum) =  target_acc.row(legNum) +M_stance.row(legNum).cwiseInverse().cwiseProduct( ( target_force.row(legNum) - force.transpose().row(legNum) 
+                + B_stance.row(legNum).cwiseProduct(target_vel.row(legNum) - ftsPstVel.row(legNum)) 
+                + K_stance.row(legNum).cwiseProduct(target_pos.row(legNum) - ftsPstPos.row(legNum))) ); 
         }
 
     }

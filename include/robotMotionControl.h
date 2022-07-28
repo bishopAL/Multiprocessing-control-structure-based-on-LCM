@@ -1,3 +1,6 @@
+#ifndef robotMotionControl_H
+#define robotMotionControl_H
+
 #include <limits.h>
 #include <pthread.h>
 #include <sched.h>
@@ -89,6 +92,7 @@ class IMPControl : public MotionControl
         Matrix<float, 4, 3> target_pos; // LF RF LH RH ; x y z  in CoM cordinate 
         Matrix<float, 4, 3> target_vel;
         Matrix<float, 4, 3> target_acc; // Force in target position
+        Matrix<float, 4, 3> target_force;
         // Vector<float, 3> targetCoMVelocity;  // X, Y , alpha in world cordinate
         // Vector<float, 3> presentCoMVelocity;  // X, Y , alpha in world cordinate
         // Matrix<float, 4, 3> targetCoMPosition;  // X, Y , alpha in world cordinate
@@ -96,16 +100,18 @@ class IMPControl : public MotionControl
         Matrix<float, 4, 3> xc_dot;
         Matrix<float, 4, 3> xc;
         Matrix<float, 3, 4> force;              // force feedback   x y z ; LF RF LH RH
-        Matrix<float, 4, 3> target_force;
         Matrix<float, 4, 3> K_swing, K_stance, K_desorption, K_adhesion;                     //LF RF LH RH
         Matrix<float, 4, 3> B_swing, B_stance, B_desorption, B_adhesion;
         Matrix<float, 4, 3> M_swing, M_stance, M_desorption, M_adhesion;
         float impCtlRate;
 
-        void impdeliver(vector<float>present_torque);
+        void impFeedback(vector<float> torque);
+        void impParaDeliver();
         void impCtller();
         void impChangePara(Matrix<float, 4, 3> mK, Matrix<float, 4, 3> mB, Matrix<float, 4, 3> mM, int mode);
         IMPControl();
 };
 
 void string2float(string add, float* dest);
+
+#endif

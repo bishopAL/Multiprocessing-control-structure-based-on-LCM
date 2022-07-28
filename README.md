@@ -46,3 +46,4 @@
 1. [LCM](http://lcm-proj.github.io)
 2. [Eigen](eigen.tuxfamily.org/)
 3. [Dynamixel API](https://github.com/bishopAL/GeRot/tree/master/API/dynamixel_cpp%20Ver2.0)
+4. [DxlAPI Interface]  If use /dev/ttyAMA0, go to (https://blog.csdn.net/sinat_37939098/article/details/119344651?spm=1001.2014.3001.5502)

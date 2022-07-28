@@ -4,7 +4,7 @@
 #include "robotCommand/robotCommand.hpp"
 #include "robotMotionControl.h"
 #include "impPara/impPara.hpp"
-#include <handler.hpp>
+#include <handler.h>
 #include <iostream>
 #include <fstream>
 #include <string.h>
@@ -25,14 +25,18 @@ using namespace std;
 #define INIMODE 2
 #define _JOYSTICK 1
 #define MORTOR_ANGLE_AMP 20*3.14/180.0
-#define loopRateCommandUpdate 100   //hz
-#define loopRateStateUpdateSend 20   //hz
+#define loopRateCommandUpdate 100.0   //hz
+#define loopRateStateUpdateSend 20.0   //hz
+#define loopRateImpCtller 100.0   //hz
+#define VELX 10.0/1000
 
 lcm::LCM Lcm;
 robotCommand::robotCommand rc;
 robotState::robotState rs;
+impPara::impPara ip;
 IMPControl imp;
 ImpParaHandler ipHandle;
+RobotStateHandler rsHandle;
 
 vector<int> ID = {  
 0,1,2,
@@ -42,12 +46,6 @@ vector<int> ID = {
 };
 DxlAPI motors("/dev/ttyAMA0", 1000000, ID, 1);  //3000000  cannot hold 6 legs
 
-float TimePeriod = 0.01;
-float TimeForGaitPeriod = 0.49;
-Matrix<float, 4, 2>TimeForStancePhase ;
-Matrix<float, 4, 3> InitPos;
-Vector<float, 3> TCV={0, 0, 0 };// X, Y , alpha 
-vector<float> SetPos(12);
 
 void *robotCommandUpdate(void *data)
 {
@@ -57,6 +55,8 @@ void *robotCommandUpdate(void *data)
     int len;
     float vel = 0;
     float theta = 0;
+    Vector<float, 3> TCV={ VELX, 0, 0 };// X, Y , alpha 
+
     memset(&map, 0, sizeof(xbox_map_t));
     xbox_fd = xbox_open("/dev/input/js0");
     map.lt = -32767;
@@ -78,6 +78,7 @@ void *robotCommandUpdate(void *data)
         if(vel<0)
             vel= 0;
         TCV<<vel, 0.0, theta;
+        imp.setCoMVel(TCV);
         
         cout<<TCV.transpose()<<", "<<-map.ly<<", "<<map.lx<<", "<<map.lt<<", "<<map.rt<<endl;
         // cout<<"LO: "<<map.lo<<",RO: "<<map.ro<<",XBOX_AXIS_XX: "<<map.xx<<",XBOX_AXIS_YY: "<<map.yy<<",XBOX_BUTTON_LB: "<<map.lb<<",XBOX_BUTTON_RB: "<<map.rb<<endl;
@@ -87,7 +88,7 @@ void *robotCommandUpdate(void *data)
         gettimeofday(&endTime,NULL);
         timeUse = 1e6*(endTime.tv_sec - startTime.tv_sec) + endTime.tv_usec - startTime.tv_usec;
         //cout<<"thread1: "<<timeUse<<endl;
-        usleep(1/loopRateCommandUpdate*1e6 - (double)(timeUse) - 10); // /* 1e4 / 1e6 = 0.01s */
+        usleep(1.0/loopRateCommandUpdate*1e6 - (double)(timeUse) - 10); // /* 1e4 / 1e6 = 0.01s */
     }
     #endif
     // while(0 == Lcm.handle());
@@ -95,6 +96,13 @@ void *robotCommandUpdate(void *data)
 
 void *robotStateUpdateSend(void *data)
 {
+    float TimePeriod = 0.005;
+    float TimeForGaitPeriod = 0.495;
+    Matrix<float, 4, 2>TimeForStancePhase;
+    Matrix<float, 4, 3> InitPos;
+    Vector<float, 3> TCV={ VELX, 0, 0 };// X, Y , alpha 
+    vector<float> SetPos(12);
+
     //motors initial
     motors.setOperatingMode(3);  //3 position control; 0 current control
     motors.torqueEnable();
@@ -122,10 +130,7 @@ void *robotStateUpdateSend(void *data)
     
     
     //imp initial
-    TimePeriod = 0.01;
-    TimeForGaitPeriod = 0.49;
-    TCV<< 10.0/1000, 0, 0;// X, Y , alpha     mm
-    TimeForStancePhase << 0, 0.24, 0.25, 0.49, 0.25, 0.49, 0, 0.24;
+    TimeForStancePhase<< 0, 0.24, 0.25, 0.49, 0.25, 0.49, 0, 0.24;
     imp.setPhase(TimePeriod, TimeForGaitPeriod, TimeForStancePhase);
     //InitPos << 3.0, 0.0, -225.83, 3.0, 0.0, -225.83, -20.0, 0.0, -243.83, -20.0, 0.0, -243.83; //xyz
 #if(INIMODE==2)
@@ -156,24 +161,58 @@ void *robotStateUpdateSend(void *data)
 #endif
 
 
-    ofstream outputfile;
+    // ofstream outputfile;
 
-    outputfile.open("../include/output.csv");
-    for(int i=0; i<4; i++)
-    {
-        for(int j=0;j<3;j++)
-            outputfile<<imp.joinCmdPos(i,j)<<" ";
-        outputfile<<endl;
-    }
-    outputfile.close();
+    // outputfile.open("../include/output.csv");
+    // for(int i=0; i<4; i++)
+    // {
+    //     for(int j=0;j<3;j++)
+    //         outputfile<<imp.joinCmdPos(i,j)<<" ";
+    //     outputfile<<endl;
+    // }
+    // outputfile.close();
 
 
     imp.target_pos = imp.legCmdPos;
-    usleep(1e6);
     while(1)
     {
         struct timeval startTime,endTime;
         double timeUse;
+        gettimeofday(&startTime,NULL);
+
+        // imp.nextStep();//
+        // // cout<<"legCmdPos:\n"<<imp.legCmdPos<<endl;
+        // imp.impParaDeliver();
+
+        // imp.impFeedback(motors.present_torque); 
+        // imp.impCtller();
+        // cout<<"xc_dotdot: \n"<<imp.xc_dotdot<<"; \nxc_dot: \n"<<imp.xc_dot<<"; \nxc: \n"<<imp.xc<<endl;
+        // imp.inverseKinematics(imp.xc);
+        // //imp.inverseKinematics(imp.legCmdPos);
+        // motors.setPosition(SetPos);     
+
+        gettimeofday(&endTime,NULL);
+        timeUse = 1e6*(endTime.tv_sec - startTime.tv_sec) + endTime.tv_usec - startTime.tv_usec;
+        if(timeUse < 1e4)
+            usleep(1.0/loopRateStateUpdateSend*1e6 - (double)(timeUse) - 10); 
+        else
+            cout<<"TimeRobotStateUpdateSend: "<<timeUse<<endl;
+
+    }
+    
+}
+
+void *runImpCtller(void *data)
+{
+    vector<float> SetPos(12);
+
+    struct timeval startTime,endTime;
+    double timeUse;
+
+    usleep(1e6);
+    usleep(5e5);
+    while (1)
+    {
         gettimeofday(&startTime,NULL);
         // get motors data
         while( motors.getTorque()==false || motors.getPosition()==false || motors.getVelocity()==false );
@@ -181,15 +220,26 @@ void *robotStateUpdateSend(void *data)
         imp.updateJointPstPos(motors.present_position);
         imp.updateJointPstVel(motors.present_velocity);
         imp.forwardKinematics(1);
-        //imp.updateFtsPstPos();
         imp.updateJacobians();
         imp.updateFtsPstVel();
 
-        imp.setCoMVel(TCV);
-        imp.nextStep();//
-        // cout<<"legCmdPos:\n"<<imp.legCmdPos<<endl;
+        imp.impFeedback(motors.present_torque);  
 
-        imp.impdeliver(motors.present_torque);  
+        // for(int i=0; i<4; i++)  
+        // {
+        //     for(int j=0;j<3;j++)
+        //     {
+        //         ip.target_pos[i*3 + j] = imp.legCmdPos(i,j);
+        //         // ip.target_vel[i*3 + j] = ;
+        //         // ip.target_acc[i*3 + j] = ;
+        //         // ip.target_force[i*3 + j] = ;
+        //         ip.force[i + j*4] = imp.force(j,i);
+        //     }
+        //     ip.stanceFlag[i] = imp.stanceFlag(i);
+        //     ip.timePresentForSwing[i] = imp.timePresentForSwing(i);
+        // }
+        // Lcm.publish("IMPTAR", &ip);
+
         imp.impCtller();
         cout<<"xc_dotdot: \n"<<imp.xc_dotdot<<"; \nxc_dot: \n"<<imp.xc_dot<<"; \nxc: \n"<<imp.xc<<endl;
         imp.inverseKinematics(imp.xc);
@@ -201,6 +251,7 @@ void *robotStateUpdateSend(void *data)
                 {
                     imp.joinCmdPos(i,j) = SetPos[i*3+j];//last
                     cout<<"-------------motor_angle_"<<i*3+j<<" NAN-----------"<<endl;
+                    exit(0);
                 }
                 else
                 {
@@ -217,29 +268,24 @@ void *robotStateUpdateSend(void *data)
                     else 
                         SetPos[i*3+j] = imp.joinCmdPos(i,j);
                 }
-
                 cout<<"motor_angle_"<<i*3+j<<"  "<<SetPos[i*3+j] <<endl;
-            }
-        //cout<<"motor_cmdangle_10"<<"  "<<SetPos[10] <<endl;
-        cout<<endl;
-        motors.setPosition(SetPos);     
+            }   
+        motors.setPosition(SetPos); 
 
         gettimeofday(&endTime,NULL);
         timeUse = 1e6*(endTime.tv_sec - startTime.tv_sec) + endTime.tv_usec - startTime.tv_usec;
         if(timeUse < 1e4)
-            usleep(1/loopRateStateUpdateSend*1e6 - (double)(timeUse) - 10); // /* 1e4 / 1e6 = 0.01s */
+            usleep(1.0/loopRateImpCtller*1e6 - (double)(timeUse) - 10); 
         else
-            cout<<"thread2: "<<timeUse<<endl;
-
+            cout<<"timeImpCtller: "<<timeUse<<endl;
     }
-    
 }
 
 int main(int argc, char ** argv)
 {
-    Lcm.subscribe("IMPPARA", &ImpParaHandler::handleMessage, &ipHandle);
+    Lcm.subscribe("ROBOTCOMMAND", &RobotStateHandler::handleMessage, &rsHandle);
 
-    pthread_t th1, th2;
+    pthread_t th1, th2, th3;
 	int ret;
 	// ret = pthread_create(&th1,NULL,robotCommandUpdate,NULL);
     // if(ret != 0)
@@ -253,9 +299,17 @@ int main(int argc, char ** argv)
 		printf("create pthread2 error!\n");
 		exit(1);
 	}
+    ret = pthread_create(&th3,NULL,runImpCtller,NULL);
+    if(ret != 0)
+	{
+		printf("create pthread3 error!\n");
+		exit(1);
+	}
+    
 	
 	//pthread_join(th1, NULL);
     pthread_join(th2, NULL);
+    pthread_join(th3, NULL);
     while(1);
 
     

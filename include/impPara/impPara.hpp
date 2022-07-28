@@ -16,15 +16,45 @@ namespace impPara
 class impPara
 {
     public:
-        double     K[12];
+        float      xc[12];
 
-        double     D[12];
+        float      force[12];
 
-        double     P[12];
+        float      target_pos[12];
 
-        double     V[12];
+        float      target_vel[12];
 
-        double     Fr[12];
+        float      target_acc[12];
+
+        float      target_force[12];
+
+        float      K_swing[12];
+
+        float      K_stance[12];
+
+        float      K_desorption[12];
+
+        float      K_adhesion[12];
+
+        float      B_swing[12];
+
+        float      B_stance[12];
+
+        float      B_desorption[12];
+
+        float      B_adhesion[12];
+
+        float      M_swing[12];
+
+        float      M_stance[12];
+
+        float      M_desorption[12];
+
+        float      M_adhesion[12];
+
+        int8_t     stanceFlag[4];
+
+        float      timePresentForSwing[4];
 
     public:
         /**
@@ -122,19 +152,64 @@ int impPara::_encodeNoHash(void *buf, int offset, int maxlen) const
 {
     int pos = 0, tlen;
 
-    tlen = __double_encode_array(buf, offset + pos, maxlen - pos, &this->K[0], 12);
+    tlen = __float_encode_array(buf, offset + pos, maxlen - pos, &this->xc[0], 12);
     if(tlen < 0) return tlen; else pos += tlen;
 
-    tlen = __double_encode_array(buf, offset + pos, maxlen - pos, &this->D[0], 12);
+    tlen = __float_encode_array(buf, offset + pos, maxlen - pos, &this->force[0], 12);
     if(tlen < 0) return tlen; else pos += tlen;
 
-    tlen = __double_encode_array(buf, offset + pos, maxlen - pos, &this->P[0], 12);
+    tlen = __float_encode_array(buf, offset + pos, maxlen - pos, &this->target_pos[0], 12);
     if(tlen < 0) return tlen; else pos += tlen;
 
-    tlen = __double_encode_array(buf, offset + pos, maxlen - pos, &this->V[0], 12);
+    tlen = __float_encode_array(buf, offset + pos, maxlen - pos, &this->target_vel[0], 12);
     if(tlen < 0) return tlen; else pos += tlen;
 
-    tlen = __double_encode_array(buf, offset + pos, maxlen - pos, &this->Fr[0], 12);
+    tlen = __float_encode_array(buf, offset + pos, maxlen - pos, &this->target_acc[0], 12);
+    if(tlen < 0) return tlen; else pos += tlen;
+
+    tlen = __float_encode_array(buf, offset + pos, maxlen - pos, &this->target_force[0], 12);
+    if(tlen < 0) return tlen; else pos += tlen;
+
+    tlen = __float_encode_array(buf, offset + pos, maxlen - pos, &this->K_swing[0], 12);
+    if(tlen < 0) return tlen; else pos += tlen;
+
+    tlen = __float_encode_array(buf, offset + pos, maxlen - pos, &this->K_stance[0], 12);
+    if(tlen < 0) return tlen; else pos += tlen;
+
+    tlen = __float_encode_array(buf, offset + pos, maxlen - pos, &this->K_desorption[0], 12);
+    if(tlen < 0) return tlen; else pos += tlen;
+
+    tlen = __float_encode_array(buf, offset + pos, maxlen - pos, &this->K_adhesion[0], 12);
+    if(tlen < 0) return tlen; else pos += tlen;
+
+    tlen = __float_encode_array(buf, offset + pos, maxlen - pos, &this->B_swing[0], 12);
+    if(tlen < 0) return tlen; else pos += tlen;
+
+    tlen = __float_encode_array(buf, offset + pos, maxlen - pos, &this->B_stance[0], 12);
+    if(tlen < 0) return tlen; else pos += tlen;
+
+    tlen = __float_encode_array(buf, offset + pos, maxlen - pos, &this->B_desorption[0], 12);
+    if(tlen < 0) return tlen; else pos += tlen;
+
+    tlen = __float_encode_array(buf, offset + pos, maxlen - pos, &this->B_adhesion[0], 12);
+    if(tlen < 0) return tlen; else pos += tlen;
+
+    tlen = __float_encode_array(buf, offset + pos, maxlen - pos, &this->M_swing[0], 12);
+    if(tlen < 0) return tlen; else pos += tlen;
+
+    tlen = __float_encode_array(buf, offset + pos, maxlen - pos, &this->M_stance[0], 12);
+    if(tlen < 0) return tlen; else pos += tlen;
+
+    tlen = __float_encode_array(buf, offset + pos, maxlen - pos, &this->M_desorption[0], 12);
+    if(tlen < 0) return tlen; else pos += tlen;
+
+    tlen = __float_encode_array(buf, offset + pos, maxlen - pos, &this->M_adhesion[0], 12);
+    if(tlen < 0) return tlen; else pos += tlen;
+
+    tlen = __boolean_encode_array(buf, offset + pos, maxlen - pos, &this->stanceFlag[0], 4);
+    if(tlen < 0) return tlen; else pos += tlen;
+
+    tlen = __float_encode_array(buf, offset + pos, maxlen - pos, &this->timePresentForSwing[0], 4);
     if(tlen < 0) return tlen; else pos += tlen;
 
     return pos;
@@ -144,19 +219,64 @@ int impPara::_decodeNoHash(const void *buf, int offset, int maxlen)
 {
     int pos = 0, tlen;
 
-    tlen = __double_decode_array(buf, offset + pos, maxlen - pos, &this->K[0], 12);
+    tlen = __float_decode_array(buf, offset + pos, maxlen - pos, &this->xc[0], 12);
     if(tlen < 0) return tlen; else pos += tlen;
 
-    tlen = __double_decode_array(buf, offset + pos, maxlen - pos, &this->D[0], 12);
+    tlen = __float_decode_array(buf, offset + pos, maxlen - pos, &this->force[0], 12);
     if(tlen < 0) return tlen; else pos += tlen;
 
-    tlen = __double_decode_array(buf, offset + pos, maxlen - pos, &this->P[0], 12);
+    tlen = __float_decode_array(buf, offset + pos, maxlen - pos, &this->target_pos[0], 12);
     if(tlen < 0) return tlen; else pos += tlen;
 
-    tlen = __double_decode_array(buf, offset + pos, maxlen - pos, &this->V[0], 12);
+    tlen = __float_decode_array(buf, offset + pos, maxlen - pos, &this->target_vel[0], 12);
     if(tlen < 0) return tlen; else pos += tlen;
 
-    tlen = __double_decode_array(buf, offset + pos, maxlen - pos, &this->Fr[0], 12);
+    tlen = __float_decode_array(buf, offset + pos, maxlen - pos, &this->target_acc[0], 12);
+    if(tlen < 0) return tlen; else pos += tlen;
+
+    tlen = __float_decode_array(buf, offset + pos, maxlen - pos, &this->target_force[0], 12);
+    if(tlen < 0) return tlen; else pos += tlen;
+
+    tlen = __float_decode_array(buf, offset + pos, maxlen - pos, &this->K_swing[0], 12);
+    if(tlen < 0) return tlen; else pos += tlen;
+
+    tlen = __float_decode_array(buf, offset + pos, maxlen - pos, &this->K_stance[0], 12);
+    if(tlen < 0) return tlen; else pos += tlen;
+
+    tlen = __float_decode_array(buf, offset + pos, maxlen - pos, &this->K_desorption[0], 12);
+    if(tlen < 0) return tlen; else pos += tlen;
+
+    tlen = __float_decode_array(buf, offset + pos, maxlen - pos, &this->K_adhesion[0], 12);
+    if(tlen < 0) return tlen; else pos += tlen;
+
+    tlen = __float_decode_array(buf, offset + pos, maxlen - pos, &this->B_swing[0], 12);
+    if(tlen < 0) return tlen; else pos += tlen;
+
+    tlen = __float_decode_array(buf, offset + pos, maxlen - pos, &this->B_stance[0], 12);
+    if(tlen < 0) return tlen; else pos += tlen;
+
+    tlen = __float_decode_array(buf, offset + pos, maxlen - pos, &this->B_desorption[0], 12);
+    if(tlen < 0) return tlen; else pos += tlen;
+
+    tlen = __float_decode_array(buf, offset + pos, maxlen - pos, &this->B_adhesion[0], 12);
+    if(tlen < 0) return tlen; else pos += tlen;
+
+    tlen = __float_decode_array(buf, offset + pos, maxlen - pos, &this->M_swing[0], 12);
+    if(tlen < 0) return tlen; else pos += tlen;
+
+    tlen = __float_decode_array(buf, offset + pos, maxlen - pos, &this->M_stance[0], 12);
+    if(tlen < 0) return tlen; else pos += tlen;
+
+    tlen = __float_decode_array(buf, offset + pos, maxlen - pos, &this->M_desorption[0], 12);
+    if(tlen < 0) return tlen; else pos += tlen;
+
+    tlen = __float_decode_array(buf, offset + pos, maxlen - pos, &this->M_adhesion[0], 12);
+    if(tlen < 0) return tlen; else pos += tlen;
+
+    tlen = __boolean_decode_array(buf, offset + pos, maxlen - pos, &this->stanceFlag[0], 4);
+    if(tlen < 0) return tlen; else pos += tlen;
+
+    tlen = __float_decode_array(buf, offset + pos, maxlen - pos, &this->timePresentForSwing[0], 4);
     if(tlen < 0) return tlen; else pos += tlen;
 
     return pos;
@@ -165,17 +285,32 @@ int impPara::_decodeNoHash(const void *buf, int offset, int maxlen)
 int impPara::_getEncodedSizeNoHash() const
 {
     int enc_size = 0;
-    enc_size += __double_encoded_array_size(NULL, 12);
-    enc_size += __double_encoded_array_size(NULL, 12);
-    enc_size += __double_encoded_array_size(NULL, 12);
-    enc_size += __double_encoded_array_size(NULL, 12);
-    enc_size += __double_encoded_array_size(NULL, 12);
+    enc_size += __float_encoded_array_size(NULL, 12);
+    enc_size += __float_encoded_array_size(NULL, 12);
+    enc_size += __float_encoded_array_size(NULL, 12);
+    enc_size += __float_encoded_array_size(NULL, 12);
+    enc_size += __float_encoded_array_size(NULL, 12);
+    enc_size += __float_encoded_array_size(NULL, 12);
+    enc_size += __float_encoded_array_size(NULL, 12);
+    enc_size += __float_encoded_array_size(NULL, 12);
+    enc_size += __float_encoded_array_size(NULL, 12);
+    enc_size += __float_encoded_array_size(NULL, 12);
+    enc_size += __float_encoded_array_size(NULL, 12);
+    enc_size += __float_encoded_array_size(NULL, 12);
+    enc_size += __float_encoded_array_size(NULL, 12);
+    enc_size += __float_encoded_array_size(NULL, 12);
+    enc_size += __float_encoded_array_size(NULL, 12);
+    enc_size += __float_encoded_array_size(NULL, 12);
+    enc_size += __float_encoded_array_size(NULL, 12);
+    enc_size += __float_encoded_array_size(NULL, 12);
+    enc_size += __boolean_encoded_array_size(NULL, 4);
+    enc_size += __float_encoded_array_size(NULL, 4);
     return enc_size;
 }
 
 uint64_t impPara::_computeHash(const __lcm_hash_ptr *)
 {
-    uint64_t hash = 0x7e1b2dde57e54e0cLL;
+    uint64_t hash = 0x87aabac43571af98LL;
     return (hash<<1) + ((hash>>63)&1);
 }
 

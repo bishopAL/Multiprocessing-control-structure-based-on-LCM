@@ -14,8 +14,14 @@ message("CMAKE_HOST_SYSTEM_PROCESSOR: ${CMAKE_HOST_SYSTEM_PROCESSOR}")
 # set(EXECUTABLE_OUTPUT_PATH ${PROJECT_SOURCE_DIR}/bin)
 set(LIBRARY_OUTPUT_PATH ${PROJECT_SOURCE_DIR}/lib)
 
-add_library(dynamixel_lib STATIC ${PROJECT_SOURCE_DIR}/src/dynamixel.cpp)
-target_include_directories(dynamixel_lib
+add_library(dynamixel STATIC ${PROJECT_SOURCE_DIR}/src/dynamixel.cpp)
+target_include_directories(dynamixel
+    PUBLIC
+        ${PROJECT_SOURCE_DIR}/include
+)
+
+add_library(RobotMChandler STATIC ${PROJECT_SOURCE_DIR}/src/handler.cpp src/robotMotionControl.cpp)
+target_include_directories(RobotMChandler
     PUBLIC
         ${PROJECT_SOURCE_DIR}/include
 )
@@ -29,11 +35,11 @@ set( DYNAMIXELLIB "dxl_sbc_cpp")
 endif()
 
 add_executable(stateEst src/stateEst.cpp)
-target_link_libraries(stateEst lcm pthread)
+target_link_libraries(stateEst lcm pthread RobotMChandler)
 
-add_executable(robotCmd src/robotCmd.cpp src/robotMotionControl.cpp )   #src/dynamixel.cpp
-target_link_libraries(robotCmd lcm pthread dynamixel_lib ${DYNAMIXELLIB})   # lib must in order: dynamixel_lib dxl_sbc_cpp 
+add_executable(robotCmd src/robotCmd.cpp)   
+target_link_libraries(robotCmd lcm pthread dynamixel ${DYNAMIXELLIB} RobotMChandler)   # lib must in order: dynamixel dxl_sbc_cpp 
 
 add_executable(impCtl src/impCtl.cpp)
-target_link_libraries(impCtl lcm pthread)
+target_link_libraries(impCtl lcm pthread RobotMChandler)
 

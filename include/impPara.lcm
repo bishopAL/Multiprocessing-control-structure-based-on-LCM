@@ -1,9 +1,15 @@
 package impPara;
 struct impPara
 {
-    double  K[12];
-    double  D[12];
-    double  P[12];
-    double  V[12];
-    double  Fr[12];
+    float xc[12];
+    float force[12]; 
+    float target_pos[12]; 
+    float target_vel[12];
+    float target_acc[12]; 
+    float target_force[12];
+    float K_swing[12], K_stance[12], K_desorption[12], K_adhesion[12];                     
+    float B_swing[12], B_stance[12], B_desorption[12], B_adhesion[12];
+    float M_swing[12], M_stance[12], M_desorption[12], M_adhesion[12];
+    boolean stanceFlag[4];
+    float timePresentForSwing[4];
 }

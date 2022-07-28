@@ -1,7 +1,7 @@
 #include <lcm/lcm-cpp.hpp>
 #include "robotState/robotState.hpp"
 #include "impPara/impPara.hpp"
-#include <handler.hpp>
+#include <handler.h>
 #include <iostream>
 #include <stdio.h>
 #include <stdlib.h>
@@ -27,19 +27,24 @@ void *robotStateUpdate(void *data)
 
 void *stateEst(void *data)
 {
-    for(int j=0; j<100; j++)
-    {
-        for(int i=0; i<12; i++)
-        {
-            ip.D[i] = j;
-            ip.K[i] = j;
-            ip.P[i] = j;
-            ip.V[i] = j;
-            ip.Fr[i] = j;
-        }
-        Lcm.publish("IMPPARA", &ip);
-        usleep(1e6);
-    }
+    // for(int j=0; j<100; j++)
+    // {
+    //     for(int i=0; i<12; i++)
+    //     {
+    //         ip.target_pos[i] = 1+ i*j;
+    //     }
+        // struct timeval startTime,endTime;
+        // double timeUse;
+        // gettimeofday(&startTime,NULL);
+
+        //Lcm.publish("IMPTAR", &ip);
+
+        // gettimeofday(&endTime,NULL);
+        // timeUse = 1e6*(endTime.tv_sec - startTime.tv_sec) + endTime.tv_usec - startTime.tv_usec;
+        // cout<<"publishTime:"<<timeUse<<endl;
+
+    //     usleep(1e6);
+    // }
 }
 
 int main(int argc, char ** argv)

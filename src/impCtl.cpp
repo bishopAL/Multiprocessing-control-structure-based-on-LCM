@@ -2,7 +2,7 @@
 #include "robotState/robotState.hpp"
 #include "robotCommand/robotCommand.hpp"
 #include "impPara/impPara.hpp"
-#include <handler.hpp>
+#include "handler.h"
 #include <iostream>
 #include <stdio.h>
 #include <stdlib.h>
@@ -10,6 +10,7 @@
 #include <sys/mman.h>
 #include <unistd.h>
 #include <pthread.h>
+#include "robotMotionControl.h"
 
 #include <math.h>
 #include <Eigen/Core>
@@ -23,6 +24,8 @@ using namespace Eigen;
 
 #define THREAD1_ENABLE 1
 #define THREAD2_ENABLE 1
+#define MORTOR_ANGLE_AMP 20*3.14/180.0
+#define loopRateImpCtller 100
 
 lcm::LCM Lcm;
 robotCommand::robotCommand rc;
@@ -43,16 +46,16 @@ void *impCtller(void *data)
             rc.targetEndPos[i] = j;
         }
         Lcm.publish("ROBOTCOMMAND", &rc);
-        cout<<ipHandle.K[0]<<endl;
         usleep(1e6);
     }
 }
 
 int main(int argc, char ** argv)
 {
-    Lcm.subscribe("IMPPARA", &ImpParaHandler::handleMessage, &ipHandle);
+    Lcm.subscribe("IMPTAR", &ImpParaHandler::handleMessage, &ipHandle);
     Lcm.subscribe("ROBOTSTATE", &RobotStateHandler::handleMessage, &rsHandle);
 
+    ipHandle.target_vel(0,0) = 123;
     pthread_t th1, th2;
 	int ret;
 	ret = pthread_create(&th1,NULL,paraUpdate,NULL);
