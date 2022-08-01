@@ -24,7 +24,7 @@ using namespace std;
 //  2:  Foot end position
 #define INIMODE 2
 #define _JOYSTICK 1
-#define MORTOR_ANGLE_AMP 20*3.14/180.0
+#define MORTOR_ANGLE_AMP 25*3.14/180.0
 #define loopRateCommandUpdate 100.0   //hz
 #define loopRateStateUpdateSend 20.0   //hz
 #define loopRateImpCtller 100.0   //hz
@@ -44,7 +44,7 @@ vector<int> ID = {
 6,7,8
 ,9,10,11
 };
-DxlAPI motors("/dev/ttyAMA0", 1000000, ID, 1);  //3000000  cannot hold 6 legs
+DxlAPI motors("/dev/ttyUSB0", 1000000, ID, 1);  //3000000  cannot hold 6 legs
 
 
 void *robotCommandUpdate(void *data)
@@ -80,7 +80,7 @@ void *robotCommandUpdate(void *data)
         TCV<<vel, 0.0, theta;
         imp.setCoMVel(TCV);
         
-        cout<<TCV.transpose()<<", "<<-map.ly<<", "<<map.lx<<", "<<map.lt<<", "<<map.rt<<endl;
+        //cout<<TCV.transpose()<<", "<<-map.ly<<", "<<map.lx<<", "<<map.lt<<", "<<map.rt<<endl;
         // cout<<"LO: "<<map.lo<<",RO: "<<map.ro<<",XBOX_AXIS_XX: "<<map.xx<<",XBOX_AXIS_YY: "<<map.yy<<",XBOX_BUTTON_LB: "<<map.lb<<",XBOX_BUTTON_RB: "<<map.rb<<endl;
         // cout<<"XBOX_BUTTON_A: "<<map.a<<"XBOX_BUTTON_B: "<<map.b<<"XBOX_BUTTON_x: "<<map.x<<"XBOX_BUTTON_y: "<<map.y<<endl;
         // cout<<map.start<<", "<<map.back<<", "<<map.home<<endl;
@@ -97,7 +97,7 @@ void *robotCommandUpdate(void *data)
 void *robotStateUpdateSend(void *data)
 {
     float TimePeriod = 0.005;
-    float TimeForGaitPeriod = 0.495;
+    float TimeForGaitPeriod = 0.5;
     Matrix<float, 4, 2>TimeForStancePhase;
     Matrix<float, 4, 3> InitPos;
     Vector<float, 3> TCV={ VELX, 0, 0 };// X, Y , alpha 
@@ -128,13 +128,15 @@ void *robotStateUpdateSend(void *data)
     motors.setPosition(init_Motor_angle);
 #endif    
     
-    float GaitTime = TimePeriod + TimeForGaitPeriod;
     //imp initial
-    //TimeForStancePhase<< 0, 0.24, 0.25, 0.49, 0.25, 0.49, 0, 0.24;
-    TimeForStancePhase<< GaitTime/4.0 *3,   GaitTime/4.0 *2 - TimePeriod,
-                         GaitTime/4.0,      GaitTime - TimePeriod,
-                         GaitTime,          GaitTime/4.0 *3 - TimePeriod,
-                         GaitTime/4.0 *2,   GaitTime/4.0 - TimePeriod;
+    // TimeForStancePhase<< 0,                       TimeForGaitPeriod/2.0, 
+    //                      TimeForGaitPeriod/2.0,   TimeForGaitPeriod, 
+    //                      TimeForGaitPeriod/2.0,   TimeForGaitPeriod, 
+    //                      0,                       TimeForGaitPeriod/2.0;
+    TimeForStancePhase<< TimeForGaitPeriod/4.0 *3,          TimeForGaitPeriod/4.0 *2,
+                         TimeForGaitPeriod/4.0,             TimeForGaitPeriod,
+                         TimeForGaitPeriod - TimePeriod,    TimeForGaitPeriod/4.0 *3,
+                         TimeForGaitPeriod/4.0 *2,          TimeForGaitPeriod/4.0;
     imp.setPhase(TimePeriod, TimeForGaitPeriod, TimeForStancePhase);
     //InitPos << 3.0, 0.0, -225.83, 3.0, 0.0, -225.83, -20.0, 0.0, -243.83, -20.0, 0.0, -243.83; //xyz
 #if(INIMODE==2)
@@ -239,8 +241,9 @@ void *runImpCtller(void *data)
         // Lcm.publish("IMPTAR", &ip);
 
         imp.impCtller();
-        //cout<<"xc_dotdot: \n"<<imp.xc_dotdot<<"; \nxc_dot: \n"<<imp.xc_dot<<"; \nxc: \n"<<imp.xc<<endl;
+        cout<<"xc_dotdot: \n"<<imp.xc_dotdot<<"; \nxc_dot: \n"<<imp.xc_dot<<"; \nxc: \n"<<imp.xc<<endl;
         imp.inverseKinematics(imp.xc);
+        // imp.inverseKinematics(imp.target_pos);
 
         for(int i=0; i<4; i++)  
             for(int j=0;j<3;j++)
@@ -266,8 +269,9 @@ void *runImpCtller(void *data)
                     else 
                         SetPos[i*3+j] = imp.joinCmdPos(i,j);
                 }
-                //cout<<"motor_angle_"<<i*3+j<<"  "<<SetPos[i*3+j] <<endl;
+                //cout<<"motor_angle_"<<i*3+j<<": "<<SetPos[i*3+j]<<"  ";
             }   
+        // cout<<endl;
         motors.setPosition(SetPos); 
 
         gettimeofday(&endTime,NULL);

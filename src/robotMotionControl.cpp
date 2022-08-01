@@ -307,12 +307,17 @@ void MotionControl::inverseKinematics(Matrix<float, 4, 3> cmdpos)
 void MotionControl::nextStep()
 {
     float timeForSwing;
+    if (abs(timePresent - timeForGaitPeriod ) < 1e-4)  // check if present time has reach the gait period                                                               
+    {                                                            // if so, set it to 0.0
+        timePresent = 0.0;
+    }
+
     for(uint8_t legNum=0; legNum<4; legNum++)  // run all 4 legs
     {   
         if(timeForStancePhase(legNum,0) < timeForStancePhase(legNum,1))
         {
-            timeForSwing = (timeForGaitPeriod - (timeForStancePhase(legNum,1) - timeForStancePhase(legNum,0)));
-            if(timePresent > timeForStancePhase(legNum,0)-timePeriod/2 && timePresent < timeForStancePhase(legNum,1)+timePeriod/2 )
+            timeForSwing = (timeForGaitPeriod - (timeForStancePhase(legNum,1) - timeForStancePhase(legNum,0) - timePeriod));
+            if(timePresent > timeForStancePhase(legNum,0) - timePeriod/2 && timePresent < timeForStancePhase(legNum,1) - timePeriod/2 )
                 // check timePresent is in stance phase or swing phase, -timePeriod/2 is make sure the equation is suitable
                 stanceFlag(legNum) = true;
             else    //swing phase 
@@ -320,8 +325,8 @@ void MotionControl::nextStep()
         }
         else
         {
-            timeForSwing = timeForStancePhase(legNum,0) - timeForStancePhase(legNum,1);
-            if(timePresent > timeForStancePhase(legNum,0)-timePeriod/2 || timePresent < timeForStancePhase(legNum,1)+timePeriod/2 )
+            timeForSwing = timeForStancePhase(legNum,0) - timeForStancePhase(legNum,1) - timePeriod;
+            if(timePresent > timeForStancePhase(legNum,0) - timePeriod/2 || timePresent < timeForStancePhase(legNum,1) - timePeriod/2 )
                 // check timePresent is in stance phase or swing phase, -timePeriod/2 is make sure the equation is suitable
                 stanceFlag(legNum) = true;
             else    //swing phase 
@@ -349,7 +354,7 @@ void MotionControl::nextStep()
                 shoulderPos(legNum, 0) = oneShoulderPos_3x1(0);
                 shoulderPos(legNum, 1) = oneShoulderPos_3x1(1);
             }
-            if(abs(timePresent - timeForStancePhase(legNum,1)) < 1e-4)  // if on the end pos
+            if(abs(timePresent - timeForStancePhase(legNum,1)) < timePeriod + 1e-4)  // if on the end pos   
                 stancePhaseEndPos(legNum) = legCmdPos(legNum);
 
             legCmdPos(legNum, 0) = stancePhaseStartPos(legNum, 0) + (shoulderPos(legNum, 0) - oneShoulderPos_3x1(0));
@@ -358,20 +363,20 @@ void MotionControl::nextStep()
         else    //swing phase 
         {
             Matrix<float, 1, 3> swingPhaseVelocity = (stancePhaseEndPos.row(legNum) - stancePhaseStartPos.row(legNum)) / (timeForSwing - timePeriod);
-            
+            //cout<<"legNum_"<<(int)legNum<<":"<<swingPhaseVelocity.array()<<"  ";
             for(uint8_t pos=0; pos<3; pos++)
                 legCmdPos(legNum, pos) = legCmdPos(legNum, pos) - swingPhaseVelocity(pos) * timePeriod;
 
             if( ( timePresentForSwing(legNum) - timeForSwing/2 ) < -1e-4 
                 && timePresentForSwing(legNum) > 1e-4)
-                legCmdPos(legNum, 2) += 22.0/1000 / timeForSwing * timePeriod;
+                legCmdPos(legNum, 2) += 25.0/1000 / timeForSwing * timePeriod;
             if( ( timePresentForSwing(legNum) - timeForSwing/2 ) > 1e-4)
-                legCmdPos(legNum, 2) -= 22.0/1000 / timeForSwing * timePeriod;
+                legCmdPos(legNum, 2) -= 25.0/1000 / timeForSwing * timePeriod;
         }
         //cout<<"legNum_"<<(int)legNum<<":"<<stanceFlag(legNum)<<"  ";
     }
 
-    timePresent += timePeriod;
+    
     for(uint8_t leg=0; leg<4; leg++)
     {
         for(uint8_t pos=0; pos<3; pos++)
@@ -381,12 +386,7 @@ void MotionControl::nextStep()
         if(stanceFlag(leg) == 0) timePresentForSwing(leg) += timePeriod;
         else timePresentForSwing(leg) = 0;
     }
-
-    if (abs(timePresent - timeForGaitPeriod ) < 1e-4)  // check if present time has reach the gait period                                                               
-    {                                                            // if so, set it to 0.0
-        timePresent = 0.0;
-    }
-
+    timePresent += timePeriod;
 }
 /////////////////////////////////////////////////////////////////////////////
 //                                          IMPControl
