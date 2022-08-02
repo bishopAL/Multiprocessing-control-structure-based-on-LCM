@@ -96,8 +96,8 @@ void *robotCommandUpdate(void *data)
 
 void *robotStateUpdateSend(void *data)
 {
-    float TimePeriod = 0.005;
-    float TimeForGaitPeriod = 0.5;
+    float TimePeriod = 0.05;
+    float TimeForGaitPeriod = 5;
     Matrix<float, 4, 2>TimeForStancePhase;
     Matrix<float, 4, 3> InitPos;
     Vector<float, 3> TCV={ VELX, 0, 0 };// X, Y , alpha 
@@ -241,7 +241,7 @@ void *runImpCtller(void *data)
         // Lcm.publish("IMPTAR", &ip);
 
         imp.impCtller();
-        cout<<"xc_dotdot: \n"<<imp.xc_dotdot<<"; \nxc_dot: \n"<<imp.xc_dot<<"; \nxc: \n"<<imp.xc<<endl;
+        // cout<<"xc_dotdot: \n"<<imp.xc_dotdot<<"; \nxc_dot: \n"<<imp.xc_dot<<"; \nxc: \n"<<imp.xc<<endl;
         imp.inverseKinematics(imp.xc);
         // imp.inverseKinematics(imp.target_pos);
 

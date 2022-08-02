@@ -28,7 +28,7 @@ class MotionControl
         float timeForGaitPeriod;  // The time of the whole period
         float timePeriod;  // The time of one period
         float timePresent;  
-        float timeOneSwingPeriod;  // The swing time for diag legs
+        Vector<float, 4> timeForSwing;   // The swing time for legs
         Matrix<float, 4, 2> timeForStancePhase;  // startTime, endTime: LF, RF, LH, RH
         Vector<float, 3> targetCoMVelocity;  // X, Y , alpha in world cordinate
         Vector<float, 3> presentCoMVelocity;  // X, Y , alpha in world cordinate
@@ -100,9 +100,9 @@ class IMPControl : public MotionControl
         Matrix<float, 4, 3> xc_dot;
         Matrix<float, 4, 3> xc;
         Matrix<float, 3, 4> force;              // force feedback   x y z ; LF RF LH RH
-        Matrix<float, 4, 3> K_swing, K_stance, K_desorption, K_adhesion;                     //LF RF LH RH
-        Matrix<float, 4, 3> B_swing, B_stance, B_desorption, B_adhesion;
-        Matrix<float, 4, 3> M_swing, M_stance, M_desorption, M_adhesion;
+        Matrix<float, 4, 3> K_swing, K_stance, K_detach, K_attach;                     //LF RF LH RH
+        Matrix<float, 4, 3> B_swing, B_stance, B_detach, B_attach;
+        Matrix<float, 4, 3> M_swing, M_stance, M_detach, M_attach;
         float impCtlRate;
 
         void impFeedback(vector<float> torque);

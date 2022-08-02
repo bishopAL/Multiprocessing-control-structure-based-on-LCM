@@ -24,6 +24,11 @@
 │   ├── impPara
 │   │   └── impPara.hpp  # The parameter for impedance control
 │   ├── impPara.lcm
+│   ├── imp_parameter.csv   # The parameters K,B,M of impCtller in pahse of stance/ swing/ detach/ attach.
+│   ├── init_Motor_angle.csv
+│   ├── initPos.csv
+│   ├── js.h    # The joystick of XBOX to contrl the direction of robot
+│   ├── output.csv
 │   ├── robotCommand
 │   │   └── robotCommand.hpp  # The command for the robot actuator 
 │   ├── robotCommand.lcm
@@ -31,10 +36,15 @@
 │   ├── robotState
 │   │   └── robotState.hpp  # The data of robot state
 │   └── robotState.lcm
+├── lib
+│   ├── libdynamixel.a
+│   ├── libdynamixel_lib.a
+│   └── libRobotMChandler.a
 ├── README.md
 ├── run.sh
 └── src
     ├── dynamixel.cpp
+    ├── handler.cpp
     ├── impCtl.cpp
     ├── robotCmd.cpp
     ├── robotMotionControl.cpp
