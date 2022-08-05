@@ -34,7 +34,7 @@ class MotionControl
         Vector<float, 3> presentCoMVelocity;  // X, Y , alpha in world cordinate
         Matrix<float, 4, 3> targetCoMPosition;  // X, Y , alpha in world cordinate
         float yawVelocity;   // yaw velocity from imu
-        Vector<bool, 4> stanceFlag;  // True, False: LF, RF, LH, RH
+        Vector<int, 4> stepFlag;  //  0-stance, 1-swing, 2-detach, 3-attach: LF, RF, LH, RH
         Vector<float, 4> timePresentForSwing;
         float L1, L2, L3;  // The length of L
         float width, length;
@@ -99,7 +99,7 @@ class IMPControl : public MotionControl
         Matrix<float, 4, 3> xc_dotdot;
         Matrix<float, 4, 3> xc_dot;
         Matrix<float, 4, 3> xc;
-        Matrix<float, 3, 4> force;              // force feedback   x y z ; LF RF LH RH
+        Matrix<float, 3, 4> force, force_last;              // force feedback   x y z ; LF RF LH RH
         Matrix<float, 4, 3> K_swing, K_stance, K_detach, K_attach;                     //LF RF LH RH
         Matrix<float, 4, 3> B_swing, B_stance, B_detach, B_attach;
         Matrix<float, 4, 3> M_swing, M_stance, M_detach, M_attach;

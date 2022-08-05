@@ -97,7 +97,7 @@ void *robotCommandUpdate(void *data)
 void *robotStateUpdateSend(void *data)
 {
     float TimePeriod = 0.05;
-    float TimeForGaitPeriod = 5;
+    float TimeForGaitPeriod = 8;
     Matrix<float, 4, 2>TimeForStancePhase;
     Matrix<float, 4, 3> InitPos;
     Vector<float, 3> TCV={ VELX, 0, 0 };// X, Y , alpha 
@@ -168,7 +168,6 @@ void *robotStateUpdateSend(void *data)
 
 
     // ofstream outputfile;
-
     // outputfile.open("../include/output.csv");
     // for(int i=0; i<4; i++)
     // {
@@ -180,16 +179,18 @@ void *robotStateUpdateSend(void *data)
 
 
     imp.target_pos = imp.legCmdPos;
+    IniFlag = 1;
+    usleep(1e5);
     while(1)
     {
         struct timeval startTime,endTime;
         double timeUse;
         gettimeofday(&startTime,NULL);
 
-        //If stay static, annotate below three lines.
+        //If stay static, annotate below one line.
         imp.nextStep();//
-        // cout<<"legCmdPos:\n"<<imp.legCmdPos<<endl;
         imp.impParaDeliver();
+        // cout<<"legCmdPos:\n"<<imp.legCmdPos<<endl;
 
         gettimeofday(&endTime,NULL);
         timeUse = 1e6*(endTime.tv_sec - startTime.tv_sec) + endTime.tv_usec - startTime.tv_usec;
@@ -209,8 +210,10 @@ void *runImpCtller(void *data)
     struct timeval startTime,endTime;
     double timeUse;
 
-    usleep(1e6);
-    usleep(5e5);
+
+    while(IniFlag == 0) //wait for initial
+        usleep(1e2);
+    usleep(1e5);
     while (1)
     {
         gettimeofday(&startTime,NULL);
@@ -240,10 +243,19 @@ void *runImpCtller(void *data)
         // }
         // Lcm.publish("IMPTAR", &ip);
 
+        // for(int i=0;i<3;i++)
+        //     for(int j=0;j<4;j++)
+        //         ip.force[i*4+j] = imp.force(i,j);
+        ip.force[11] = imp.force(2,3);
+        ip.xc[11] = imp.xc(3,2);
+        Lcm.publish("IMPTAR", &ip);
+
         imp.impCtller();
-        // cout<<"xc_dotdot: \n"<<imp.xc_dotdot<<"; \nxc_dot: \n"<<imp.xc_dot<<"; \nxc: \n"<<imp.xc<<endl;
+        cout<<"xc_dotdot: \n"<<imp.xc_dotdot<<"; \nxc_dot: \n"<<imp.xc_dot<<"; \nxc: \n"<<imp.xc<<endl;
+        cout<<"ftsPstPos: \n"<<imp.ftsPstPos<<endl;
+        cout<<endl;
         imp.inverseKinematics(imp.xc);
-        // imp.inverseKinematics(imp.target_pos);
+        // imp.inverseKinematics(imp.target_pos); //    within impCtller
 
         for(int i=0; i<4; i++)  
             for(int j=0;j<3;j++)
@@ -272,6 +284,7 @@ void *runImpCtller(void *data)
                 //cout<<"motor_angle_"<<i*3+j<<": "<<SetPos[i*3+j]<<"  ";
             }   
         // cout<<endl;
+        // cout<<"force:\n"<<imp.force.transpose()<<endl;
         motors.setPosition(SetPos); 
 
         gettimeofday(&endTime,NULL);
@@ -285,7 +298,7 @@ void *runImpCtller(void *data)
 
 int main(int argc, char ** argv)
 {
-    Lcm.subscribe("ROBOTCOMMAND", &RobotStateHandler::handleMessage, &rsHandle);
+    // Lcm.subscribe("ROBOTCOMMAND", &RobotStateHandler::handleMessage, &rsHandle);
 
     pthread_t th1, th2, th3;
 	int ret;

@@ -10,6 +10,6 @@ struct impPara
     float K_swing[12], K_stance[12], K_desorption[12], K_adhesion[12];                     
     float B_swing[12], B_stance[12], B_desorption[12], B_adhesion[12];
     float M_swing[12], M_stance[12], M_desorption[12], M_adhesion[12];
-    boolean stanceFlag[4];
+    int8_t stepFlag[4];
     float timePresentForSwing[4];
 }

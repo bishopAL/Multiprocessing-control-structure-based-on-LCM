@@ -52,7 +52,7 @@ class impPara
 
         float      M_adhesion[12];
 
-        int8_t     stanceFlag[4];
+        int8_t     stepFlag[4];
 
         float      timePresentForSwing[4];
 
@@ -206,7 +206,7 @@ int impPara::_encodeNoHash(void *buf, int offset, int maxlen) const
     tlen = __float_encode_array(buf, offset + pos, maxlen - pos, &this->M_adhesion[0], 12);
     if(tlen < 0) return tlen; else pos += tlen;
 
-    tlen = __boolean_encode_array(buf, offset + pos, maxlen - pos, &this->stanceFlag[0], 4);
+    tlen = __int8_t_encode_array(buf, offset + pos, maxlen - pos, &this->stepFlag[0], 4);
     if(tlen < 0) return tlen; else pos += tlen;
 
     tlen = __float_encode_array(buf, offset + pos, maxlen - pos, &this->timePresentForSwing[0], 4);
@@ -273,7 +273,7 @@ int impPara::_decodeNoHash(const void *buf, int offset, int maxlen)
     tlen = __float_decode_array(buf, offset + pos, maxlen - pos, &this->M_adhesion[0], 12);
     if(tlen < 0) return tlen; else pos += tlen;
 
-    tlen = __boolean_decode_array(buf, offset + pos, maxlen - pos, &this->stanceFlag[0], 4);
+    tlen = __int8_t_decode_array(buf, offset + pos, maxlen - pos, &this->stepFlag[0], 4);
     if(tlen < 0) return tlen; else pos += tlen;
 
     tlen = __float_decode_array(buf, offset + pos, maxlen - pos, &this->timePresentForSwing[0], 4);
@@ -303,14 +303,14 @@ int impPara::_getEncodedSizeNoHash() const
     enc_size += __float_encoded_array_size(NULL, 12);
     enc_size += __float_encoded_array_size(NULL, 12);
     enc_size += __float_encoded_array_size(NULL, 12);
-    enc_size += __boolean_encoded_array_size(NULL, 4);
+    enc_size += __int8_t_encoded_array_size(NULL, 4);
     enc_size += __float_encoded_array_size(NULL, 4);
     return enc_size;
 }
 
 uint64_t impPara::_computeHash(const __lcm_hash_ptr *)
 {
-    uint64_t hash = 0x87aabac43571af98LL;
+    uint64_t hash = 0xbf46526ac1fabce8LL;
     return (hash<<1) + ((hash>>63)&1);
 }
 

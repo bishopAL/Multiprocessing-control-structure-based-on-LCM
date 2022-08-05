@@ -34,20 +34,39 @@ RobotStateHandler rsHandle;
 
 void *paraUpdate(void *data)
 {
-    while(0 == Lcm.handle());
+    ofstream outputfile;
+    outputfile.open("../include/output.csv");
+    
+    while(1)
+    {
+        if(0 == Lcm.handle())
+        {
+            // for(int i=0; i<3; i++)
+            // {
+            //     for(int j=0; j<4; j++)
+            //         outputfile<<ipHandle.force(i,j)<<",";
+            // }
+            outputfile<<ipHandle.force(2,3)<<",";
+            outputfile<<ipHandle.xc(3,2);
+            outputfile<<"\r\n";
+        }
+        usleep(1e4);
+    }
+    outputfile.clear();
+    outputfile.close();
 }
 
 void *impCtller(void *data)
 {
-    for(int j=0; j<100; j++)
-    {
-        for(int i=0; i<12; i++)
-        {
-            rc.targetEndPos[i] = j;
-        }
-        Lcm.publish("ROBOTCOMMAND", &rc);
-        usleep(1e6);
-    }
+    // for(int j=0; j<100; j++)
+    // {
+    //     for(int i=0; i<12; i++)
+    //     {
+    //         rc.targetEndPos[i] = j;
+    //     }
+    //     // Lcm.publish("ROBOTCOMMAND", &rc);
+    //     usleep(1e6);
+    // }
 }
 
 int main(int argc, char ** argv)
@@ -55,7 +74,6 @@ int main(int argc, char ** argv)
     Lcm.subscribe("IMPTAR", &ImpParaHandler::handleMessage, &ipHandle);
     Lcm.subscribe("ROBOTSTATE", &RobotStateHandler::handleMessage, &rsHandle);
 
-    ipHandle.target_vel(0,0) = 123;
     pthread_t th1, th2;
 	int ret;
 	ret = pthread_create(&th1,NULL,paraUpdate,NULL);
