@@ -13,7 +13,7 @@ void ImpParaHandler::handleMessage(const lcm::ReceiveBuffer* rbuf, const std::st
             target_force(i, j) = msg->target_force[i*3 + j];
             xc(i, j) = msg->xc[i*3 + j];
         }
-        stepFlag(i) = msg->stepFlag[i];
+        stepFlag[i] = (_stepFlag) msg->stepFlag[i];
         timePresentForSwing(i) = msg->timePresentForSwing[i];
     }
 }

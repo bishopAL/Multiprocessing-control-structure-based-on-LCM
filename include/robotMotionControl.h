@@ -34,7 +34,7 @@ class MotionControl
         Vector<float, 3> presentCoMVelocity;  // X, Y , alpha in world cordinate
         Matrix<float, 4, 3> targetCoMPosition;  // X, Y , alpha in world cordinate
         float yawVelocity;   // yaw velocity from imu
-        Vector<int, 4> stepFlag;  //  0-stance, 1-swing, 2-detach, 3-attach: LF, RF, LH, RH
+        enum _stepFlag{stance=0, swing, detach, attach}stepFlag[4];  //  0-stance, 1-swing, 2-detach, 3-attach: LF, RF, LH, RH
         Vector<float, 4> timePresentForSwing;
         float L1, L2, L3;  // The length of L
         float width, length;

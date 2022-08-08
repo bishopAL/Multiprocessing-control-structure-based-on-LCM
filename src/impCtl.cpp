@@ -47,7 +47,9 @@ void *paraUpdate(void *data)
             //         outputfile<<ipHandle.force(i,j)<<",";
             // }
             outputfile<<ipHandle.force(2,3)<<",";
-            outputfile<<ipHandle.xc(3,2);
+            outputfile<<ipHandle.xc(3,0)<<",";
+            outputfile<<ipHandle.xc(3,2)<<",";
+            outputfile<<(int)ipHandle.stepFlag[3];
             outputfile<<"\r\n";
         }
         usleep(1e4);

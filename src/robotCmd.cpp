@@ -28,7 +28,7 @@ using namespace std;
 #define loopRateCommandUpdate 100.0   //hz
 #define loopRateStateUpdateSend 20.0   //hz
 #define loopRateImpCtller 100.0   //hz
-#define VELX 5.0/1000
+#define VELX 5.0 /1000   // mm/s
 
 lcm::LCM Lcm;
 robotCommand::robotCommand rc;
@@ -179,7 +179,7 @@ void *robotStateUpdateSend(void *data)
 
 
     imp.target_pos = imp.legCmdPos;
-    IniFlag = 1;
+    imp.initFlag = 1;
     usleep(1e5);
     while(1)
     {
@@ -211,7 +211,7 @@ void *runImpCtller(void *data)
     double timeUse;
 
 
-    while(IniFlag == 0) //wait for initial
+    while(imp.initFlag == 0) //wait for initial
         usleep(1e2);
     usleep(1e5);
     while (1)
@@ -247,15 +247,18 @@ void *runImpCtller(void *data)
         //     for(int j=0;j<4;j++)
         //         ip.force[i*4+j] = imp.force(i,j);
         ip.force[11] = imp.force(2,3);
-        ip.xc[11] = imp.xc(3,2);
+        // ip.xc[11] = imp.xc(3,2);
+        ip.xc[9] = imp.legCmdPos(3, 0);
+        ip.xc[11] = imp.legCmdPos(3, 2);
+        ip.stepFlag[3] = (int)imp.stepFlag[3];
         Lcm.publish("IMPTAR", &ip);
 
-        imp.impCtller();
+        // imp.impCtller();
         cout<<"xc_dotdot: \n"<<imp.xc_dotdot<<"; \nxc_dot: \n"<<imp.xc_dot<<"; \nxc: \n"<<imp.xc<<endl;
         cout<<"ftsPstPos: \n"<<imp.ftsPstPos<<endl;
         cout<<endl;
-        imp.inverseKinematics(imp.xc);
-        // imp.inverseKinematics(imp.target_pos); //    within impCtller
+        // imp.inverseKinematics(imp.xc);
+        imp.inverseKinematics(imp.target_pos); //    within impCtller
 
         for(int i=0; i<4; i++)  
             for(int j=0;j<3;j++)
