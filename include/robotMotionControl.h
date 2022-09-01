@@ -41,15 +41,12 @@ class MotionControl
         Matrix<float, 4, 2> shoulderPos;  // X-Y: LF, RF, LH, RH
         Matrix<float, 4, 3> stancePhaseStartPos;
         Matrix<float, 4, 3> stancePhaseEndPos;
-        Matrix<float, 4, 3> legPresentPos;  // present X-Y-Z: LF, RF, LH, RH in shoulder coordinate
-        Matrix<float, 4, 3> legCmdPos;  // command X-Y-Z: LF, RF, LH, RH in shoulder coordinate
-        Matrix<float, 4, 3> leg2CoMPrePos;  // present X-Y-Z: LF, RF, LH, RH in CoM cordinate
-        Matrix<float, 4, 3> leg2CoMCmdPos;  // command X-Y-Z: LF, RF, LH, RH in CoM cordinate
-        Matrix<float, 4, 3> ftsPstPos;  // Pos of foot  in shoulder coordinate
-        Matrix<float, 4, 3> ftsPstVel;  // Vel of foot  in shoulder coordinate
-        Matrix<float, 4, 3> joinCmdPos;  // command joint angle 0-11
-        Matrix<float, 4, 3>  jointPstPos;  // present motor 0-11
-        Matrix<float, 4, 3>  jointPstVel;  // present motor 0-11
+        Matrix<float, 4, 3> legCmdPos;  // command position of foot  in shoulder coordinate, in order LF, RF, LH, RH; X-Y-Z
+        Matrix<float, 4, 3> legPresPos;  // present position of foot  in shoulder coordinate, in order LF, RF, LH, RH; X-Y-Z
+        Matrix<float, 4, 3> legPresVel;  // present velocity of foot  in shoulder coordinate, in order LF, RF, LH, RH; X-Y-Z
+        Matrix<float, 4, 3> jointCmdPos;  // command joint angle 0-11
+        Matrix<float, 4, 3>  jointPresPos;  // present motor 0-11
+        Matrix<float, 4, 3>  jointPresVel;  // present motor 0-11
         vector<Matrix<float, 3, 3>> jacobian_vector; 
         Matrix<float, 6, 6>A;     //VMC
         Vector<float, 6>B;        //VMC
@@ -76,13 +73,12 @@ class MotionControl
         void setCoMVel(Vector<float, 3> tCV);   
         void setPhase(float tP, float tFGP, Matrix<float, 4, 2> tFSP);
         void nextStep();
-        void updateJointPstPos(vector<float> jointPos);
-        void updateJointPstVel(vector<float> jointVel);
+        void updatejointPresPos(vector<float> jointPos);
+        void updatejointPresVel(vector<float> jointVel);
         void updateJacobians();
         void forwardKinematics(int mode);
         void inverseKinematics(Matrix<float, 4, 3> cmdpos);   // standing state
-        void updateFtsPstPos(); // to update Pos of foot  in shoulder coordinate
-        void updateFtsPstVel(); // to update Vel of foot  in shoulder coordinate
+        void updateFtsPstVel(); 
         MotionControl();
 };
 

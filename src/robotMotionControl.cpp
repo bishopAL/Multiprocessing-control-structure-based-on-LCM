@@ -1,8 +1,8 @@
 #include "robotMotionControl.h"
 
 #define ForceLPF  0.9
-#define StepHeight  20.0/1000.0
-#define TimeHeight 2.0/4.0
+#define StepHeight  30.0/1000.0
+#define TimeHeight 2.0/4.0  // time for trajectory within vertical part
 
 /**
  * @brief 
@@ -50,7 +50,13 @@ MotionControl::MotionControl()
     length = 172.0 / 1000;  
     shoulderPos << width/2, length/2, width/2, -length/2, -width/2, length/2, -width/2, -length/2;  // X-Y: LF, RF, LH, RH
 }
-
+/**
+ * @brief set phases for gait
+ * 
+ * @param tP The time of one period
+ * @param tFGP The time of the whole period
+ * @param tFSP The time of stance phase on start and end, in order LF, RF, LH, RH
+ */
 void MotionControl::setPhase(float tP, float tFGP, Matrix<float, 4, 2> tFSP)
 {
     timePeriod = tP;
@@ -66,12 +72,17 @@ void MotionControl::setPhase(float tP, float tFGP, Matrix<float, 4, 2> tFSP)
             timeForSwing(legNum) = timeForStancePhase(legNum,0) - timeForStancePhase(legNum,1) - timePeriod;
     }
 }
-
+/**
+ * @brief set initial position of feet in shoulder coordinate
+ * 
+ * @param initPosition foot position in shoulder coordinate.
+ * NOTE the lenth of legs, whitch is L1, L2, L3 in constructor of MotionControl.
+ */
 void MotionControl::setInitPos(Matrix<float, 4, 3> initPosition)
 {
     stancePhaseStartPos = initPosition;
     stancePhaseEndPos = initPosition;
-    legPresentPos = initPosition;
+    legPresPos = initPosition;
     legCmdPos = initPosition;
     targetCoMPosition.setZero();
 }
@@ -89,33 +100,33 @@ void MotionControl::setCoMVel(Vector<float, 3> tCV)
  * @brief 
  * 
  * @param jointPos 
- * put (vector)jointPos[12] into (Matrix)jointPstPos(4,3)
+ * put (vector)jointPos[12] into (Matrix)jointPresPos(4,3)
  */
-void MotionControl::updateJointPstPos(vector<float> jointPos)
+void MotionControl::updatejointPresPos(vector<float> jointPos)
 {
     for(int i=0; i<4; i++)
     {
         for(int j=0; j<3; j++)
-            jointPstPos(i,j) = jointPos[i*3 + j];
+            jointPresPos(i,j) = jointPos[i*3 + j];
     }
 }
 /**
  * @brief 
  * 
  * @param jointVel 
- * put (vector)jointVel[12] into (Matrix)jointPstVel(4,3)
+ * put (vector)jointVel[12] into (Matrix)jointPresVel(4,3)
  */
-void MotionControl::updateJointPstVel(vector<float> jointVel)
+void MotionControl::updatejointPresVel(vector<float> jointVel)
 {
     for(int i=0; i<4; i++)
     {
         for(int j=0; j<3; j++)
-            jointPstVel(i,j) = jointVel[i*3 + j];
+            jointPresVel(i,j) = jointVel[i*3 + j];
     }
 }
 /**
  * @brief 
- * update jacobian_vector with jointPstPos
+ * Calculcate jacobian_vector with jointPresPos
  */
 void MotionControl::updateJacobians()
 {
@@ -123,10 +134,9 @@ void MotionControl::updateJacobians()
     {
         float th0,th1,th2;
         float factor_y, factor_x, factor_z, factor_s12, factor_s0;  
-        th0 =  jointPstPos(legNum,0);
-        th1 =  jointPstPos(legNum,1);
-        th2 =  jointPstPos(legNum,2); 
-        //  shoulder coordinate to COM
+        th0 =  jointPresPos(legNum,0);
+        th1 =  jointPresPos(legNum,1);
+        th2 =  jointPresPos(legNum,2); 
         if(legNum==0 )              //LF  
         {
             factor_x = 1;
@@ -170,38 +180,25 @@ void MotionControl::updateJacobians()
         jacobian_vector[legNum](2, 2) = L2*factor_z*cos(th1 + th2)*sin(th0);
     }
 }
-
-void MotionControl::updateFtsPstPos()
-{
-    ftsPstPos(0, 0) = L2 * cos(jointPstPos(0,1) + jointPstPos(0,2)) - L1 * sin(jointPstPos(0,1));
-    ftsPstPos(0, 1) = L3 * sin(jointPstPos(0,0)) + L1 * cos(jointPstPos(0,0)) * cos(jointPstPos(0,1)) + L2 * cos(jointPstPos(0,0)) * cos(jointPstPos(0,1)) * sin(jointPstPos(0,2)) + L2 * cos(jointPstPos(0,0)) * cos(jointPstPos(0,2)) * sin(jointPstPos(0,1));
-    ftsPstPos(0, 2) =  - L3 * cos(jointPstPos(0,0)) + L1 * sin(jointPstPos(0,0)) * cos(jointPstPos(0,1)) + L2 * sin(jointPstPos(0,0)) * cos(jointPstPos(0,1)) * sin(jointPstPos(0,2)) + L2 * sin(jointPstPos(0,0)) * cos(jointPstPos(0,2)) * sin(jointPstPos(0,1));
-    ftsPstPos(1, 0) = L2 * cos(jointPstPos(1, 1) + jointPstPos(1, 2)) + L1 * sin(jointPstPos(1, 1));
-    ftsPstPos(1, 1) = L3 * sin(jointPstPos(1, 0)) - L1 * cos(jointPstPos(1, 0)) * cos(jointPstPos(1, 1)) + L2 * cos(jointPstPos(1, 0)) * cos(jointPstPos(1, 1)) * sin(jointPstPos(1, 2)) + L2 * cos(jointPstPos(1, 0)) * cos(jointPstPos(1, 2)) * sin(jointPstPos(1, 1));
-    ftsPstPos(1, 2) = - L3 * cos(jointPstPos(1, 0)) - L1 * sin(jointPstPos(1, 0)) * cos(jointPstPos(1, 1)) + L2 * sin(jointPstPos(1, 0)) * cos(jointPstPos(1, 1)) * sin(jointPstPos(1, 2)) + L2 * sin(jointPstPos(1, 0)) * cos(jointPstPos(1, 2)) * sin(jointPstPos(1, 1));
-    ftsPstPos(2, 0) = - L2 * cos(jointPstPos(2, 1) + jointPstPos(2, 2)) - L1 * sin(jointPstPos(2, 1));
-    ftsPstPos(2, 1) = - L3 * sin(jointPstPos(2, 0)) + L1 * cos(jointPstPos(2, 0)) * cos(jointPstPos(2, 1)) - L2 * cos(jointPstPos(2, 0)) * cos(jointPstPos(2, 1)) * sin(jointPstPos(2, 2)) - L2 * cos(jointPstPos(2, 0)) * cos(jointPstPos(2, 2)) * sin(jointPstPos(2, 1));
-    ftsPstPos(2, 2) = - L3 * cos(jointPstPos(2, 0)) - L1 * sin(jointPstPos(2, 0)) * cos(jointPstPos(2, 1)) + L2 * sin(jointPstPos(2, 0)) * cos(jointPstPos(2, 1)) * sin(jointPstPos(2, 2)) + L2 * sin(jointPstPos(2, 0)) * cos(jointPstPos(2, 2)) * sin(jointPstPos(2, 1));
-    ftsPstPos(3, 0) = - L2 * cos(jointPstPos(3, 1) + jointPstPos(3, 2)) + L1 * sin(jointPstPos(3, 1));
-    ftsPstPos(3, 1) = L3 * sin(jointPstPos(3, 0)) - L1 * cos(jointPstPos(3, 0)) * cos(jointPstPos(3, 1)) - L2 * cos(jointPstPos(3, 0)) * cos(jointPstPos(3, 1)) * sin(jointPstPos(3, 2)) - L2 * cos(jointPstPos(3, 0)) * cos(jointPstPos(3, 2)) * sin(jointPstPos(3, 1));
-    ftsPstPos(3, 2) = - L3 * cos(jointPstPos(3, 0)) - L1 * sin(jointPstPos(3, 0)) * cos(jointPstPos(3, 1)) - L2 * sin(jointPstPos(3, 0)) * cos(jointPstPos(3, 1)) * sin(jointPstPos(3, 2)) - L2 * sin(jointPstPos(3, 0)) * cos(jointPstPos(3, 2)) * sin(jointPstPos(3, 1));
-}
-
+/**
+ * @brief 
+ * update Vel of feet in shoulder coordinate
+ */
 void MotionControl::updateFtsPstVel()
 {
     for(int i=0; i<4; i++)
     {
         Matrix <float, 3, 1> temp_vel;
-        temp_vel = jacobian_vector[i] * jointPstVel.row(i).transpose();
-        ftsPstVel.row(i) = temp_vel.transpose();
+        temp_vel = jacobian_vector[i] * jointPresVel.row(i).transpose();
+        legPresVel.row(i) = temp_vel.transpose();
     }
 }
 /**
  * @brief forwardKinematics
  * 
  * @param mode 
- * =0    update legCmdPos with joinCmdPos(target)
- * =1    update ftsPstPos with jointPstPos(present)
+ * if mode=0    calculcate foot position(legCmdPos) with jointCmdPos(target),
+ * if mode=1    calculcate foot position(legPresPos) with jointPresPos(present)
  */
 void MotionControl::forwardKinematics(int mode)
 {
@@ -211,17 +208,16 @@ void MotionControl::forwardKinematics(int mode)
         float factor_y, factor_x,  factor_z, factor_s12, factor_s0;  
         if(mode==0)
         {
-            th0 =  joinCmdPos(legNum,0);
-            th1 =  joinCmdPos(legNum,1);
-            th2 =  joinCmdPos(legNum,2);    
+            th0 =  jointCmdPos(legNum,0);
+            th1 =  jointCmdPos(legNum,1);
+            th2 =  jointCmdPos(legNum,2);    
         }
         else if(mode==1)
         {
-            th0 =  jointPstPos(legNum,0);
-            th1 =  jointPstPos(legNum,1);
-            th2 =  jointPstPos(legNum,2);     
+            th0 =  jointPresPos(legNum,0);
+            th1 =  jointPresPos(legNum,1);
+            th2 =  jointPresPos(legNum,2);     
         }
-        //  shoulder coordinate to COM
         if(legNum==0 )              //LF  
         {
             factor_x = 1;
@@ -262,14 +258,19 @@ void MotionControl::forwardKinematics(int mode)
         }
         else if(mode==1)
         {
-            ftsPstPos(legNum,0) = factor_x * (-factor_s12 * L1 * sin(th1) + L2 * cos(th1 + th2));
-            ftsPstPos(legNum,1) = factor_y * ((( L1 * cos(th1) + factor_s12 * L2 * sin(th1 + th2) ) * cos(th0) + factor_s0 * L3 * sin(th0)));
-            ftsPstPos(legNum,2) = factor_z * (( L1 * cos(th1) + factor_s12 * L2 * sin(th1 + th2) ) * factor_s0 * sin(th0) -  L3 * cos(th0));
+            legPresPos(legNum,0) = factor_x * (-factor_s12 * L1 * sin(th1) + L2 * cos(th1 + th2));
+            legPresPos(legNum,1) = factor_y * ((( L1 * cos(th1) + factor_s12 * L2 * sin(th1 + th2) ) * cos(th0) + factor_s0 * L3 * sin(th0)));
+            legPresPos(legNum,2) = factor_z * (( L1 * cos(th1) + factor_s12 * L2 * sin(th1 + th2) ) * factor_s0 * sin(th0) -  L3 * cos(th0));
         }
     }
 
 }
-
+/**
+ * @brief inverse Kinematics
+ * 
+ * @param cmdpos 
+ * Calculcate joint angles (jointCmdPos) for motors with foot position(cmdpos) in shoulder coordinate
+ */
 void MotionControl::inverseKinematics(Matrix<float, 4, 3> cmdpos)
 {
     for(uint8_t legNum=0; legNum<4; legNum++)  // LF RF LH RH
@@ -307,10 +308,10 @@ void MotionControl::inverseKinematics(Matrix<float, 4, 3> cmdpos)
                 factor_x= 1;
                 factor_y= -1;
             }
-            joinCmdPos(legNum,0) = factor_xc * (asin(L3 / sqrt( cmdpos(legNum,2)*cmdpos(legNum,2) + cmdpos(legNum,1)*cmdpos(legNum,1) )) + atan2(cmdpos(legNum,2),factor_y * cmdpos(legNum,1)) );     
-            joinCmdPos(legNum,1) = factor_yc * (asin((cmdpos(legNum,1) * cmdpos(legNum,1) + cmdpos(legNum,0) * cmdpos(legNum,0) + cmdpos(legNum,2) * cmdpos(legNum,2) + L1 * L1 - L2 * L2 - L3 * L3) / ( 2 * L1 * sqrt (cmdpos(legNum,1) * cmdpos(legNum,1) +  cmdpos(legNum,0) * cmdpos(legNum,0) + cmdpos(legNum,2) * cmdpos(legNum,2) - L3 * L3)))
+            jointCmdPos(legNum,0) = factor_xc * (asin(L3 / sqrt( cmdpos(legNum,2)*cmdpos(legNum,2) + cmdpos(legNum,1)*cmdpos(legNum,1) )) + atan2(cmdpos(legNum,2),factor_y * cmdpos(legNum,1)) );     
+            jointCmdPos(legNum,1) = factor_yc * (asin((cmdpos(legNum,1) * cmdpos(legNum,1) + cmdpos(legNum,0) * cmdpos(legNum,0) + cmdpos(legNum,2) * cmdpos(legNum,2) + L1 * L1 - L2 * L2 - L3 * L3) / ( 2 * L1 * sqrt (cmdpos(legNum,1) * cmdpos(legNum,1) +  cmdpos(legNum,0) * cmdpos(legNum,0) + cmdpos(legNum,2) * cmdpos(legNum,2) - L3 * L3)))
                     - atan2(sqrt(cmdpos(legNum,1) * cmdpos(legNum,1) + cmdpos(legNum,2) * cmdpos(legNum,2) - L3 * L3) , factor_x * cmdpos(legNum,0)));
-            joinCmdPos(legNum,2) = factor_zc * asin((L1 * L1 + L2 * L2 + L3 * L3 - cmdpos(legNum,1) * cmdpos(legNum,1) - cmdpos(legNum,0) * cmdpos(legNum,0) - cmdpos(legNum,2) * cmdpos(legNum,2)) / (2 * L1 * L2));
+            jointCmdPos(legNum,2) = factor_zc * asin((L1 * L1 + L2 * L2 + L3 * L3 - cmdpos(legNum,1) * cmdpos(legNum,1) - cmdpos(legNum,0) * cmdpos(legNum,0) - cmdpos(legNum,2) * cmdpos(legNum,2)) / (2 * L1 * L2));
 
         }
 }
@@ -362,8 +363,8 @@ void MotionControl::nextStep()
             if(abs(timePresent - timeForStancePhase(legNum,0)) < 1e-4)  // if on the start pos 
             {
                 stancePhaseStartPos(legNum) = legCmdPos(legNum);
-                shoulderPos(legNum, 0) = oneShoulderPos_3x1(0);
-                shoulderPos(legNum, 1) = oneShoulderPos_3x1(1);
+                // shoulderPos(legNum, 0) = oneShoulderPos_3x1(0);
+                // shoulderPos(legNum, 1) = oneShoulderPos_3x1(1);
             }
             if(abs(timePresent - timeForStancePhase(legNum,1)) < timePeriod + 1e-4)  // if on the end pos   
                 stancePhaseEndPos(legNum) = legCmdPos(legNum);
@@ -442,7 +443,7 @@ IMPControl::IMPControl()
 
 /**
  * @brief 
- * Calcute feedback force for impCtller.
+ * Calculcate feedback force for impCtller.
  * @param torque update force with present_torque
  */
 void IMPControl::impFeedback(vector<float> torque)
@@ -458,7 +459,7 @@ void IMPControl::impFeedback(vector<float> torque)
 
 /**
  * @brief 
- * Deliver parameter to impCtller, after run nextstep().
+ * Deliver parameters in nextstep() to impCtller.
  */
 void IMPControl::impParaDeliver()
 {
@@ -498,12 +499,6 @@ void IMPControl::impParaDeliver()
         }
     }
 
-    // target_vel << 
-    // 0.01, 0.01, 0.01, 0.01,
-    // 0.01, 0.01, 0.01, 0.01,
-    // 0.01, 0.01, 0.01, 0.01;
-    //target_acc = 0; //
-    //target_force << 0;
 }
 /**
  * @brief 
@@ -517,41 +512,41 @@ void IMPControl::impCtller()
         {
             case 0: //stance
                 xc_dotdot.row(legNum) =  target_acc.row(legNum) - M_stance.row(legNum).cwiseInverse().cwiseProduct( target_force.row(legNum) - force.transpose().row(legNum) )
-                + B_stance.row(legNum).cwiseProduct(target_vel.row(legNum) - ftsPstVel.row(legNum)) 
-                + K_stance.row(legNum).cwiseProduct(target_pos.row(legNum) - ftsPstPos.row(legNum)); 
+                + B_stance.row(legNum).cwiseProduct(target_vel.row(legNum) - legPresVel.row(legNum)) 
+                + K_stance.row(legNum).cwiseProduct(target_pos.row(legNum) - legPresPos.row(legNum)); 
                 // cout<<"M__stance_"<<(int)legNum<<"  "<<-M_stance.row(legNum).cwiseProduct( target_force.row(legNum) - force.transpose().row(legNum) )<<endl;
-                // cout<<"B__stance_"<<(int)legNum<<"  "<<B_stance.row(legNum).cwiseProduct(target_vel.row(legNum) - ftsPstVel.row(legNum))<<endl;
-                // cout<<"K__stance_"<<(int)legNum<<"  "<<K_stance.row(legNum).cwiseProduct(target_pos.row(legNum) - ftsPstPos.row(legNum))<<endl;
+                // cout<<"B__stance_"<<(int)legNum<<"  "<<B_stance.row(legNum).cwiseProduct(target_vel.row(legNum) - legPresVel.row(legNum))<<endl;
+                // cout<<"K__stance_"<<(int)legNum<<"  "<<K_stance.row(legNum).cwiseProduct(target_pos.row(legNum) - legPresPos.row(legNum))<<endl;
                 break;
 
             case 1: //swing
                 xc_dotdot.row(legNum) =  target_acc.row(legNum) - M_swing.row(legNum).cwiseInverse().cwiseProduct( target_force.row(legNum) - force.transpose().row(legNum) )
-                + B_swing.row(legNum).cwiseProduct(target_vel.row(legNum) - ftsPstVel.row(legNum)) 
-                + K_swing.row(legNum).cwiseProduct(target_pos.row(legNum) - ftsPstPos.row(legNum)); 
+                + B_swing.row(legNum).cwiseProduct(target_vel.row(legNum) - legPresVel.row(legNum)) 
+                + K_swing.row(legNum).cwiseProduct(target_pos.row(legNum) - legPresPos.row(legNum)); 
                 break;
 
             case 2: //detach
                 xc_dotdot.row(legNum) =  target_acc.row(legNum) - M_detach.row(legNum).cwiseInverse().cwiseProduct( target_force.row(legNum) - force.transpose().row(legNum) )
-                + B_detach.row(legNum).cwiseProduct(target_vel.row(legNum) - ftsPstVel.row(legNum)) 
-                + K_detach.row(legNum).cwiseProduct(target_pos.row(legNum) - ftsPstPos.row(legNum));
-                cout<<"M__detach_"<<(int)legNum<<"  "<<-M_detach.row(legNum).cwiseProduct( target_force.row(legNum) - force.transpose().row(legNum) )<<endl;
-                cout<<"B__detach_"<<(int)legNum<<"  "<<B_detach.row(legNum).cwiseProduct(target_vel.row(legNum) - ftsPstVel.row(legNum))<<endl;
-                cout<<"K__detach_"<<(int)legNum<<"  "<<K_detach.row(legNum).cwiseProduct(target_pos.row(legNum) - ftsPstPos.row(legNum))<<endl;
+                + B_detach.row(legNum).cwiseProduct(target_vel.row(legNum) - legPresVel.row(legNum)) 
+                + K_detach.row(legNum).cwiseProduct(target_pos.row(legNum) - legPresPos.row(legNum));
+                // cout<<"M__detach_"<<(int)legNum<<"  "<<-M_detach.row(legNum).cwiseProduct( target_force.row(legNum) - force.transpose().row(legNum) )<<endl;
+                // cout<<"B__detach_"<<(int)legNum<<"  "<<B_detach.row(legNum).cwiseProduct(target_vel.row(legNum) - legPresVel.row(legNum))<<endl;
+                // cout<<"K__detach_"<<(int)legNum<<"  "<<K_detach.row(legNum).cwiseProduct(target_pos.row(legNum) - legPresPos.row(legNum))<<endl;
                 break;
 
             case 3: //attach
                 xc_dotdot.row(legNum) =  target_acc.row(legNum) - M_attach.row(legNum).cwiseProduct( target_force.row(legNum) - force.transpose().row(legNum) )
-                + B_attach.row(legNum).cwiseProduct(target_vel.row(legNum) - ftsPstVel.row(legNum)) 
-                + K_attach.row(legNum).cwiseProduct(target_pos.row(legNum) - ftsPstPos.row(legNum));
-                cout<<"M__attach_"<<(int)legNum<<"  "<<-M_attach.row(legNum).cwiseProduct( target_force.row(legNum) - force.transpose().row(legNum) )<<endl;
-                cout<<"B__attach_"<<(int)legNum<<"  "<<B_attach.row(legNum).cwiseProduct(target_vel.row(legNum) - ftsPstVel.row(legNum))<<endl;
-                cout<<"K__attach_"<<(int)legNum<<"  "<<K_attach.row(legNum).cwiseProduct(target_pos.row(legNum) - ftsPstPos.row(legNum))<<endl;
+                + B_attach.row(legNum).cwiseProduct(target_vel.row(legNum) - legPresVel.row(legNum)) 
+                + K_attach.row(legNum).cwiseProduct(target_pos.row(legNum) - legPresPos.row(legNum));
+                // cout<<"M__attach_"<<(int)legNum<<"  "<<-M_attach.row(legNum).cwiseProduct( target_force.row(legNum) - force.transpose().row(legNum) )<<endl;
+                // cout<<"B__attach_"<<(int)legNum<<"  "<<B_attach.row(legNum).cwiseProduct(target_vel.row(legNum) - legPresVel.row(legNum))<<endl;
+                // cout<<"K__attach_"<<(int)legNum<<"  "<<K_attach.row(legNum).cwiseProduct(target_pos.row(legNum) - legPresPos.row(legNum))<<endl;
                 break;
         }
         // cout<<stepFlag[legNum]<<endl;
     }
-    xc_dot =  ftsPstVel + xc_dotdot * (1/impCtlRate);
-    xc =  ftsPstPos + 0.5 * (xc_dot * (1/impCtlRate));
+    xc_dot =  legPresVel + xc_dotdot * (1/impCtlRate);
+    xc =  legPresPos + 0.5 * (xc_dot * (1/impCtlRate));
     
     cout<<"force_\n"<<force.transpose()<<endl;
 
