@@ -443,7 +443,7 @@ IMPControl::IMPControl()
 
 /**
  * @brief 
- * Calculcate feedback force for impCtller.
+ * Calculcate feedback force with LPF for impCtller.
  * @param torque update force with present_torque
  */
 void IMPControl::impFeedback(vector<float> torque)
@@ -538,9 +538,9 @@ void IMPControl::impCtller()
                 xc_dotdot.row(legNum) =  target_acc.row(legNum) - M_attach.row(legNum).cwiseProduct( target_force.row(legNum) - force.transpose().row(legNum) )
                 + B_attach.row(legNum).cwiseProduct(target_vel.row(legNum) - legPresVel.row(legNum)) 
                 + K_attach.row(legNum).cwiseProduct(target_pos.row(legNum) - legPresPos.row(legNum));
-                // cout<<"M__attach_"<<(int)legNum<<"  "<<-M_attach.row(legNum).cwiseProduct( target_force.row(legNum) - force.transpose().row(legNum) )<<endl;
-                // cout<<"B__attach_"<<(int)legNum<<"  "<<B_attach.row(legNum).cwiseProduct(target_vel.row(legNum) - legPresVel.row(legNum))<<endl;
-                // cout<<"K__attach_"<<(int)legNum<<"  "<<K_attach.row(legNum).cwiseProduct(target_pos.row(legNum) - legPresPos.row(legNum))<<endl;
+                cout<<"M__attach_"<<(int)legNum<<"  "<<-M_attach.row(legNum).cwiseProduct( target_force.row(legNum) - force.transpose().row(legNum) )<<endl;
+                cout<<"B__attach_"<<(int)legNum<<"  "<<B_attach.row(legNum).cwiseProduct(target_vel.row(legNum) - legPresVel.row(legNum))<<endl;
+                cout<<"K__attach_"<<(int)legNum<<"  "<<K_attach.row(legNum).cwiseProduct(target_pos.row(legNum) - legPresPos.row(legNum))<<endl;
                 break;
         }
         // cout<<stepFlag[legNum]<<endl;

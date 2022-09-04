@@ -28,9 +28,9 @@ using namespace std;
 #define loopRateCommandUpdate 100.0   //hz
 #define loopRateStateUpdateSend 20.0   //hz
 #define loopRateImpCtller 100.0   //hz
-#define VELX 30.0 /1000   // mm  step length = VELX * timeForStancePhase        5
+#define VELX 10.0 /1000   // mm  step length = VELX * timeForStancePhase        
 #define TimePeriod 0.05
-#define TimeForGaitPeriod 2
+#define TimeForGaitPeriod 6
 
 lcm::LCM Lcm;
 robotCommand::robotCommand rc;
@@ -41,12 +41,12 @@ ImpParaHandler ipHandle;
 RobotStateHandler rsHandle;
 
 vector<int> ID = {  
-0,1,2,
-3, 4, 5,
-6,7,8
-,9,10,11
+// 0,1,2,
+3, 4, 5//,
+// 6,7,8
+// ,9,10,11
 };
-DxlAPI motors("/dev/ttyUSB0", 1000000, ID, 1);  //3000000  cannot hold 6 legs
+DxlAPI motors("/dev/ttyAMA0", 1000000, ID, 1);  //3000000  cannot hold 6 legs
 vector<float> SetPos(12);
 
 void *robotCommandUpdate(void *data)
@@ -129,14 +129,14 @@ void *robotStateUpdateSend(void *data)
 #endif    
     
     //      imp initial
-    TimeForStancePhase<< 0,                       TimeForGaitPeriod/2.0,     // diagonal
-                         TimeForGaitPeriod/2.0,   TimeForGaitPeriod, 
-                         TimeForGaitPeriod/2.0,   TimeForGaitPeriod, 
-                         0,                       TimeForGaitPeriod/2.0;
-    // TimeForStancePhase<< TimeForGaitPeriod/4.0 *3,          TimeForGaitPeriod/4.0 *2,   // tripod
-    //                      TimeForGaitPeriod/4.0,             TimeForGaitPeriod,
-    //                      TimeForGaitPeriod - TimePeriod,    TimeForGaitPeriod/4.0 *3,
-    //                      TimeForGaitPeriod/4.0 *2,          TimeForGaitPeriod/4.0;
+    // TimeForStancePhase<< 0,                       TimeForGaitPeriod/2.0,     // diagonal
+    //                      TimeForGaitPeriod/2.0,   TimeForGaitPeriod, 
+    //                      TimeForGaitPeriod/2.0,   TimeForGaitPeriod, 
+    //                      0,                       TimeForGaitPeriod/2.0;
+    TimeForStancePhase<< TimeForGaitPeriod/4.0 *3,          TimeForGaitPeriod/4.0 *2,   // tripod
+                         TimeForGaitPeriod/4.0,             TimeForGaitPeriod,
+                         TimeForGaitPeriod - TimePeriod,    TimeForGaitPeriod/4.0 *3,
+                         TimeForGaitPeriod/4.0 *2,          TimeForGaitPeriod/4.0;
     imp.setPhase(TimePeriod, TimeForGaitPeriod, TimeForStancePhase);
 
 #if(INIMODE==2)
@@ -215,16 +215,16 @@ void *runImpCtller(void *data)
     while (1)
     {
         gettimeofday(&startTime,NULL);
-        // get motors data
-        // while( motors.getTorque()==false || motors.getPosition()==false || motors.getVelocity()==false );
-        // update the data IMP need
-        // imp.updatejointPresPos(motors.present_position);         
-        // imp.updatejointPresVel(motors.present_velocity);
-        // imp.forwardKinematics(1);
-        // imp.updateJacobians();
-        // imp.updateFtsPstVel();
+        /* get motors data  */
+        while( motors.getTorque()==false || motors.getPosition()==false || motors.getVelocity()==false );
+        /* update the data IMP need */
+        imp.updatejointPresPos(motors.present_position);         
+        imp.updatejointPresVel(motors.present_velocity);
+        imp.forwardKinematics(1);
+        imp.updateJacobians();
+        imp.updateFtsPstVel();
 
-        // imp.impFeedback(motors.present_torque);  
+        imp.impFeedback(motors.present_torque);  
 
         // for(int i=0; i<4; i++)  
         // {
@@ -241,22 +241,19 @@ void *runImpCtller(void *data)
         // }
         // Lcm.publish("IMPTAR", &ip);
 
-        // for(int i=0;i<3;i++)
-        //     for(int j=0;j<4;j++)
-        //         ip.force[i*4+j] = imp.force(i,j);
-        // ip.force[11] = imp.force(2,3);
-        // ip.xc[9] = imp.legPresVel(3, 2);
-        // ip.xc[10] = imp.legPresPos(3,2);
-        // ip.xc[11] = imp.xc(3, 2);
-        // ip.stepFlag[3] = (int)imp.stepFlag[3];
-        // Lcm.publish("IMPTAR", &ip);
+        ip.force[11] = imp.force(2,3);
+        ip.xc[9] = imp.legPresVel(3, 2);
+        ip.xc[10] = imp.legPresPos(3,2);
+        ip.xc[11] = imp.xc(3, 2);
+        ip.stepFlag[3] = (int)imp.stepFlag[3];
+        Lcm.publish("IMPTAR", &ip);
 
-        // imp.impCtller();    //    with impCtller
-        // cout<<"xc_dotdot: \n"<<imp.xc_dotdot<<"; \nxc_dot: \n"<<imp.xc_dot<<"; \nxc: \n"<<imp.xc<<endl;
-        // cout<<"legPresPos: \n"<<imp.legPresPos<<endl;
-        // cout<<endl;
-        // imp.inverseKinematics(imp.xc);
-        imp.inverseKinematics(imp.target_pos); //    within impCtller
+        imp.impCtller();    //    with impCtller
+        cout<<"xc_dotdot: \n"<<imp.xc_dotdot<<"; \nxc_dot: \n"<<imp.xc_dot<<"; \nxc: \n"<<imp.xc<<endl;
+        cout<<"legPresPos: \n"<<imp.legPresPos<<endl;
+        cout<<endl;
+        imp.inverseKinematics(imp.xc);
+        // imp.inverseKinematics(imp.target_pos); //    within impCtller
 
         for(int i=0; i<4; i++)  
             for(int j=0;j<3;j++)
