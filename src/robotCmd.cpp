@@ -28,7 +28,7 @@ using namespace std;
 #define loopRateCommandUpdate 100.0   //hz
 #define loopRateStateUpdateSend 20.0   //hz
 #define loopRateImpCtller 100.0   //hz
-#define VELX 10.0 /1000   // mm  step length = VELX * timeForStancePhase        
+#define VELX 8.0 /1000   // mm  step length = VELX * timeForStancePhase        
 #define TimePeriod 0.05
 #define TimeForGaitPeriod 6
 
@@ -41,13 +41,13 @@ ImpParaHandler ipHandle;
 RobotStateHandler rsHandle;
 
 vector<int> ID = {  
-// 0,1,2,
-3, 4, 5//,
-// 6,7,8
-// ,9,10,11
+0,1,2,
+3, 4, 5,
+6,7,8
+,9,10,11
 };
-DxlAPI motors("/dev/ttyAMA0", 1000000, ID, 1);  //3000000  cannot hold 6 legs
-vector<float> SetPos(12);
+DxlAPI motors("/dev/ttyUSB0", 1000000, ID, 1);  //3000000  cannot hold 6 legs ttyUSB0 ttyAMA0
+vector<float> SetPos(12), SetTorque(12);
 
 void *robotCommandUpdate(void *data)
 {
@@ -207,7 +207,7 @@ void *runImpCtller(void *data)
 {
     struct timeval startTime,endTime;
     double timeUse;
-
+    int run_times=0;    // for debugging
 
     while(imp.initFlag == 0) //wait for initial
         usleep(1e2);
@@ -222,9 +222,9 @@ void *runImpCtller(void *data)
         imp.updatejointPresVel(motors.present_velocity);
         imp.forwardKinematics(1);
         imp.updateJacobians();
-        imp.updateFtsPstVel();
+        imp.updateFtsPresVel();
 
-        imp.impFeedback(motors.present_torque);  
+        imp.updateFtsPresForce(motors.present_torque);  
 
         // for(int i=0; i<4; i++)  
         // {
@@ -234,7 +234,7 @@ void *runImpCtller(void *data)
         //         // ip.target_vel[i*3 + j] = ;
         //         // ip.target_acc[i*3 + j] = ;
         //         // ip.target_force[i*3 + j] = ;
-        //         ip.force[i + j*4] = imp.force(j,i);
+        //         ip.force[i*3 + j] = imp.force(j,i);
         //     }
         //     ip.stanceFlag[i] = imp.stanceFlag(i);
         //     ip.timePresentForSwing[i] = imp.timePresentForSwing(i);
@@ -248,13 +248,14 @@ void *runImpCtller(void *data)
         ip.stepFlag[3] = (int)imp.stepFlag[3];
         Lcm.publish("IMPTAR", &ip);
 
-        imp.impCtller();    //    with impCtller
-        cout<<"xc_dotdot: \n"<<imp.xc_dotdot<<"; \nxc_dot: \n"<<imp.xc_dot<<"; \nxc: \n"<<imp.xc<<endl;
-        cout<<"legPresPos: \n"<<imp.legPresPos<<endl;
-        cout<<endl;
-        imp.inverseKinematics(imp.xc);
         // imp.inverseKinematics(imp.target_pos); //    within impCtller
+        imp.impCtller(1);   
+        imp.inverseKinematics(imp.xc);   //    Admittance control
+        // cout<<"xc_dotdot: \n"<<imp.xc_dotdot<<"; \nxc_dot: \n"<<imp.xc_dot<<"; \nxc: \n"<<imp.xc<<endl;
+        // cout<<"legPresPos: \n"<<imp.legPresPos<<endl;
+        // cout<<endl;
 
+        /*      Admittance control      */
         for(int i=0; i<4; i++)  
             for(int j=0;j<3;j++)
             {
@@ -281,16 +282,27 @@ void *runImpCtller(void *data)
                 }
                 //cout<<"motor_angle_"<<i*3+j<<": "<<SetPos[i*3+j]<<"  ";
             }   
-        // cout<<endl;
-        // cout<<"force:\n"<<imp.force.transpose()<<endl;
         motors.setPosition(SetPos); 
 
-        gettimeofday(&endTime,NULL);
-        timeUse = 1e6*(endTime.tv_sec - startTime.tv_sec) + endTime.tv_usec - startTime.tv_usec;
-        if(timeUse < 1e4)
-            usleep(1.0/loopRateImpCtller*1e6 - (double)(timeUse) - 10); 
-        else
-            cout<<"timeImpCtller: "<<timeUse<<endl;
+        /*      Impedance control      */
+        // for(int i=0; i<4; i++)  
+        //     for(int j=0;j<3;j++)
+        //         SetTorque[i*3+j] = imp.target_torque(j,i);
+        // motors.setTorque(SetTorque); 
+
+        // gettimeofday(&endTime,NULL);
+        // timeUse = 1e6*(endTime.tv_sec - startTime.tv_sec) + endTime.tv_usec - startTime.tv_usec;
+        // if(timeUse < 1e4)
+        //     usleep(1.0/loopRateImpCtller*1e6 - (double)(timeUse) - 10); 
+        // else
+        //     cout<<"timeImpCtller: "<<timeUse<<endl;
+        
+        // run_times++;
+        // if(run_times++ > 10)
+        // {
+        //     motors.torqueDisable();
+        //     exit(0);
+        // }
     }
 }
 

@@ -43,6 +43,7 @@ class MotionControl
         Matrix<float, 4, 3> stancePhaseEndPos;
         Matrix<float, 4, 3> legCmdPos;  // command position of foot  in shoulder coordinate, in order LF, RF, LH, RH; X-Y-Z
         Matrix<float, 4, 3> legPresPos;  // present position of foot  in shoulder coordinate, in order LF, RF, LH, RH; X-Y-Z
+        Matrix<float, 4, 3> legPos_last;
         Matrix<float, 4, 3> legPresVel;  // present velocity of foot  in shoulder coordinate, in order LF, RF, LH, RH; X-Y-Z
         Matrix<float, 4, 3> jointCmdPos;  // command joint angle 0-11
         Matrix<float, 4, 3>  jointPresPos;  // present motor 0-11
@@ -78,7 +79,7 @@ class MotionControl
         void updateJacobians();
         void forwardKinematics(int mode);
         void inverseKinematics(Matrix<float, 4, 3> cmdpos);   // standing state
-        void updateFtsPstVel(); 
+        void updateFtsPresVel(); 
         MotionControl();
 };
 
@@ -96,14 +97,16 @@ class IMPControl : public MotionControl
         Matrix<float, 4, 3> xc_dot;
         Matrix<float, 4, 3> xc;
         Matrix<float, 3, 4> force, force_last;              // force feedback   x y z ; LF RF LH RH
+        Matrix<float, 3, 4> target_torque;
         Matrix<float, 4, 3> K_swing, K_stance, K_detach, K_attach;                     //LF RF LH RH
         Matrix<float, 4, 3> B_swing, B_stance, B_detach, B_attach;
         Matrix<float, 4, 3> M_swing, M_stance, M_detach, M_attach;
         float impCtlRate;
 
-        void impFeedback(vector<float> torque);
+        void updateFtsPresForce(vector<float> torque);
+        void updateTargTor(Matrix<float, 3, 4> force);
         void impParaDeliver();
-        void impCtller();
+        void impCtller(int mode);
         void impChangePara(Matrix<float, 4, 3> mK, Matrix<float, 4, 3> mB, Matrix<float, 4, 3> mM, int mode);
         IMPControl();
 };

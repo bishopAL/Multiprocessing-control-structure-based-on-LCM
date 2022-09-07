@@ -63,6 +63,11 @@ DxlAPI::~DxlAPI()
     portHandler->closePort();
 }
 
+/**
+ * @brief 
+ * 
+ * @param mode  0 current(torque) control; 1 velocity control; 3 position control; 16 PWM
+ */
 void DxlAPI::setOperatingMode(uint8_t mode)
 {
     uint8_t dxl_error = 0;
