@@ -1,7 +1,7 @@
 #include "robotMotionControl.h"
 
 #define ForceLPF  0.9
-#define StepHeight  30.0/1000.0
+#define StepHeight  40.0/1000.0
 #define TimeHeight 2.0/4.0  // time for trajectory within vertical part
 
 /**
@@ -492,10 +492,7 @@ void IMPControl::impParaDeliver()
         else        //stance
         {
             stepFlag[legNum] = stance;
-            target_force << 0, 0, 0,
-                            0, 0, 0,
-                            0, 0, 0,
-                            0, 0, 0;
+            target_force.row(legNum) << 0, 0, 0;
         }
     }
 

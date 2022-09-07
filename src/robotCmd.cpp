@@ -28,9 +28,9 @@ using namespace std;
 #define loopRateCommandUpdate 100.0   //hz
 #define loopRateStateUpdateSend 20.0   //hz
 #define loopRateImpCtller 100.0   //hz
-#define VELX 30.0 /1000   // mm  step length = VELX * timeForStancePhase        5
+#define VELX 20.0 /1000   // mm  step length = VELX * timeForStancePhase        5
 #define TimePeriod 0.05
-#define TimeForGaitPeriod 2
+#define TimeForGaitPeriod 4
 
 lcm::LCM Lcm;
 robotCommand::robotCommand rc;
@@ -129,10 +129,10 @@ void *robotStateUpdateSend(void *data)
 #endif    
     
     //      imp initial
-    TimeForStancePhase<< 0,                       TimeForGaitPeriod/2.0,     // diagonal
-                         TimeForGaitPeriod/2.0,   TimeForGaitPeriod, 
-                         TimeForGaitPeriod/2.0,   TimeForGaitPeriod, 
-                         0,                       TimeForGaitPeriod/2.0;
+    TimeForStancePhase<< 0,                       TimeForGaitPeriod/10.0 *4,     // diagonal
+                         TimeForGaitPeriod/10.0 *6,   TimeForGaitPeriod, 
+                         TimeForGaitPeriod/10.0 *6,   TimeForGaitPeriod, 
+                         0,                       TimeForGaitPeriod/10.0 *4;
     // TimeForStancePhase<< TimeForGaitPeriod/4.0 *3,          TimeForGaitPeriod/4.0 *2,   // tripod
     //                      TimeForGaitPeriod/4.0,             TimeForGaitPeriod,
     //                      TimeForGaitPeriod - TimePeriod,    TimeForGaitPeriod/4.0 *3,
