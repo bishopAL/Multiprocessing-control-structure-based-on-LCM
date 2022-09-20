@@ -1,5 +1,10 @@
 # Multiprocessing-control-structure-based-on-LCM
 
+## Requirement
+1. Software setup, including [LCM](http://lcm-proj.github.io), [Eigen](eigen.tuxfamily.org/) and [Dynamixel API](https://github.com/bishopAL/GeRot/tree/master/API/dynamixel_cpp%20Ver2.0). Please install them correctly. The Eigen could be installed in `/usr/local/include`.
+2. Hardware setup. If the communication port is `/dev/ttyAMA0`, please check this [blog](https://blog.csdn.net/sinat_37939098/article/details/119344651?spm=1001.2014.3001.5502) to get how to setup the port. Make sure the communication is stable. If the communication port is `/dev/ttyUSB0` with U2D2, please check this [readme](https://github.com/bishopAL/GeRot/blob/master/README.md), the *Environmental Configuration* is the tutorial you need.
+3. Optional hardware, including joystick and IMU. If you don't need them, you may set the corresponding `pthread_t` disable in *robotCmd.cpp*.
+
 ## File structure 
 ```
 .
@@ -51,9 +56,3 @@
     └── stateEst.cpp
 ```
 
-## Requirement
-
-1. [LCM](http://lcm-proj.github.io)
-2. [Eigen](eigen.tuxfamily.org/)
-3. [Dynamixel API](https://github.com/bishopAL/GeRot/tree/master/API/dynamixel_cpp%20Ver2.0)
-4. [DxlAPI Interface]  If use /dev/ttyAMA0, go to (https://blog.csdn.net/sinat_37939098/article/details/119344651?spm=1001.2014.3001.5502)
