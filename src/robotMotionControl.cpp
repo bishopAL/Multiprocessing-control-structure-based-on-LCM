@@ -1,8 +1,9 @@
 #include "robotMotionControl.h"
 
 #define ForceLPF  0.9
-#define StepHeight  30.0/1000.0
-#define TimeHeight 2.0/4.0  // time for trajectory within vertical part
+#define StepHeight  (30.0/1000.0)
+#define TimeHeight (2.0/4.0)  // time for trajectory within vertical part
+#define swingVelFactor 3      
 
 /**
  * @brief 
@@ -375,27 +376,31 @@ void MotionControl::nextStep()
         }
         else    //swing phase 
         {
-            Matrix<float, 1, 3> swingPhaseVelocity = -(stancePhaseEndPos.row(legNum) - stancePhaseStartPos.row(legNum)) / (timeForSwing(legNum) * TimeHeight );//for half swing phase
-            float temp_x, x0, m, n, k;
+            Matrix<float, 1, 3> swingPhaseVelocity = -(stancePhaseEndPos.row(legNum) - stancePhaseStartPos.row(legNum)) / timeForSwing(legNum) ;
+            float x, xh, m, n, k;
             //cout<<"legNum_"<<(int)legNum<<":"<<swingPhaseVelocity.array()<<"  ";
             if( ( timePresentForSwing(legNum) - timeForSwing(legNum) * TimeHeight ) < 1e-4 && timePresentForSwing(legNum) > -1e-4 && swingPhaseVelocity( 0, 0) != 0)
             {            
                 for(uint8_t pos=0; pos<2; pos++)
-                    legCmdPos(legNum, pos) += swingPhaseVelocity(pos) * timePeriod;
-                temp_x = legCmdPos(legNum, 0) - stancePhaseEndPos(legNum, 0);
-                x0 = -(stancePhaseEndPos(legNum, 0) - stancePhaseStartPos(legNum, 0));
+                    legCmdPos(legNum, pos) += swingPhaseVelocity(pos) * timePeriod * swingVelFactor;     // for vertical down
+                x = legCmdPos(legNum, 0) - stancePhaseEndPos(legNum, 0);
+                xh = -(stancePhaseEndPos(legNum, 0) - stancePhaseStartPos(legNum, 0)) * TimeHeight * swingVelFactor;
 
-                // z = -( x - m )^2 + n + z0
-                m = (StepHeight + x0 * x0) /2 /x0;
-                n = m * m;
-                legCmdPos(legNum, 2) = -(temp_x - m) * (temp_x - m) + n + stancePhaseEndPos(legNum, 2);
+                /* z = -( x - m )^2 + n + z0    */
+                // m = (StepHeight + xh * xh) /2 /xh;
+                // n = m * m;
+                // legCmdPos(legNum, 2) = -(x - m) * (x - m) + n + stancePhaseEndPos(legNum, 2);
 
-                // z = -k * ( x - x0 ) + H + z0
-                // k = StepHeight / x0 / x0;
-                // legCmdPos(legNum, 2) = -k * (temp_x - x0) * (temp_x - x0) + StepHeight + stancePhaseEndPos(legNum, 2);
+                /* z = -k * ( x - xh )^2 + H + z0 */
+                k = StepHeight / xh / xh;
+                legCmdPos(legNum, 2) = -k * (x - xh) * (x - xh) + StepHeight + stancePhaseEndPos(legNum, 2);
             }
-            else if(swingPhaseVelocity( 0, 0) != 0)
+            else if( timePresentForSwing(legNum) - timeForSwing(legNum) < 1e-4 && swingPhaseVelocity( 0, 0) != 0)
+            {
+                for(uint8_t pos=0; pos<2; pos++)
+                    legCmdPos(legNum, pos) += swingPhaseVelocity(pos) * timePeriod * (1 - swingVelFactor * TimeHeight) / (1 - TimeHeight); // targetCoMVelocity
                 legCmdPos(legNum, 2) -= StepHeight / timeForSwing(legNum) / (1 - TimeHeight) * timePeriod;
+            }  
 
             if(swingPhaseVelocity( 0, 0) == 0)      //first step
             {
@@ -489,7 +494,7 @@ void IMPControl::impParaDeliver()
             if( ( timePresentForSwing(legNum) - (timeForSwing(legNum) - timePeriod *8) ) > -1e-4 )
             {
                 stepFlag[legNum] = attach;   //attach
-                target_force.row(legNum) << 0, 0, 2.0;  // x, y, z
+                target_force.row(legNum) << 0, 0, 1.2;  // x, y, z
             }
             else if( ( timePresentForSwing(legNum) - timePeriod *8 ) < 1e-4 && timePresentForSwing(legNum) > 1e-4)
             {
@@ -505,7 +510,7 @@ void IMPControl::impParaDeliver()
         else        //stance
         {
             stepFlag[legNum] = stance;
-            target_force.row(legNum) << 0, 0, 0.5;    
+            target_force.row(legNum) << 0.6, 0, 1.6;    
         }
     }
 
@@ -551,23 +556,23 @@ void IMPControl::impCtller(int mode)
                     + K_stance.row(legNum).cwiseProduct(target_pos.row(legNum) - legPresPos.row(legNum))
                     + B_stance.row(legNum).cwiseProduct(target_vel.row(legNum) - legPresVel.row(legNum)) 
                     - M_stance.row(legNum).cwiseInverse().cwiseProduct( target_force.row(legNum) - force.transpose().row(legNum) );
-                    cout<<"K__stance_"<<(int)legNum<<"  "<<K_stance.row(legNum).cwiseProduct(target_pos.row(legNum) - legPresPos.row(legNum))<<endl;
-                    cout<<"B__stance_"<<(int)legNum<<"  "<<B_stance.row(legNum).cwiseProduct(target_vel.row(legNum) - legPresVel.row(legNum))<<endl;
-                    cout<<"M__stance_"<<(int)legNum<<"  "<<-M_stance.row(legNum).cwiseInverse().cwiseProduct( target_force.row(legNum) - force.transpose().row(legNum) )<<endl;
+                    // cout<<"K__stance_"<<(int)legNum<<"  "<<K_stance.row(legNum).cwiseProduct(target_pos.row(legNum) - legPresPos.row(legNum))<<endl;
+                    // cout<<"B__stance_"<<(int)legNum<<"  "<<B_stance.row(legNum).cwiseProduct(target_vel.row(legNum) - legPresVel.row(legNum))<<endl;
+                    // cout<<"M__stance_"<<(int)legNum<<"  "<<-M_stance.row(legNum).cwiseInverse().cwiseProduct( target_force.row(legNum) - force.transpose().row(legNum) )<<endl;
                     break;
 
                 case 1: //swing
                     xc_dotdot.row(legNum) =  target_acc.row(legNum) 
-                    + B_swing.row(legNum).cwiseProduct(target_vel.row(legNum) - legPresVel.row(legNum)) 
                     + K_swing.row(legNum).cwiseProduct(target_pos.row(legNum) - legPresPos.row(legNum))
+                    + B_swing.row(legNum).cwiseProduct(target_vel.row(legNum) - legPresVel.row(legNum)) 
                     - M_swing.row(legNum).cwiseInverse().cwiseProduct( target_force.row(legNum) - force.transpose().row(legNum) );
 
                     break;
 
                 case 2: //detach
                     xc_dotdot.row(legNum) =  target_acc.row(legNum) 
-                    + B_detach.row(legNum).cwiseProduct(target_vel.row(legNum) - legPresVel.row(legNum)) 
                     + K_detach.row(legNum).cwiseProduct(target_pos.row(legNum) - legPresPos.row(legNum))
+                    + B_detach.row(legNum).cwiseProduct(target_vel.row(legNum) - legPresVel.row(legNum))   
                     - M_detach.row(legNum).cwiseInverse().cwiseProduct( target_force.row(legNum) - force.transpose().row(legNum) );
                     // cout<<"K__detach_"<<(int)legNum<<"  "<<K_detach.row(legNum).cwiseProduct(target_pos.row(legNum) - legPresPos.row(legNum))<<endl;
                     // cout<<"B__detach_"<<(int)legNum<<"  "<<B_detach.row(legNum).cwiseProduct(target_vel.row(legNum) - legPresVel.row(legNum))<<endl;
@@ -576,12 +581,12 @@ void IMPControl::impCtller(int mode)
 
                 case 3: //attach
                     xc_dotdot.row(legNum) =  target_acc.row(legNum) 
-                    + B_attach.row(legNum).cwiseProduct(target_vel.row(legNum) - legPresVel.row(legNum)) 
                     + K_attach.row(legNum).cwiseProduct(target_pos.row(legNum) - legPresPos.row(legNum))
+                    + B_attach.row(legNum).cwiseProduct(target_vel.row(legNum) - legPresVel.row(legNum)) 
                     - M_attach.row(legNum).cwiseInverse().cwiseProduct( target_force.row(legNum) - force.transpose().row(legNum) );
-                    cout<<"K__attach_"<<(int)legNum<<"  "<<K_attach.row(legNum).cwiseProduct(target_pos.row(legNum) - legPresPos.row(legNum))<<endl;
-                    cout<<"B__attach_"<<(int)legNum<<"  "<<B_attach.row(legNum).cwiseProduct(target_vel.row(legNum) - legPresVel.row(legNum))<<endl;
-                    cout<<"M__attach_"<<(int)legNum<<"  "<<-M_attach.row(legNum).cwiseInverse().cwiseProduct( target_force.row(legNum) - force.transpose().row(legNum) )<<endl;                 
+                    // cout<<"K__attach_"<<(int)legNum<<"  "<<K_attach.row(legNum).cwiseProduct(target_pos.row(legNum) - legPresPos.row(legNum))<<endl;
+                    // cout<<"B__attach_"<<(int)legNum<<"  "<<B_attach.row(legNum).cwiseProduct(target_vel.row(legNum) - legPresVel.row(legNum))<<endl;
+                    // cout<<"M__attach_"<<(int)legNum<<"  "<<-M_attach.row(legNum).cwiseInverse().cwiseProduct( target_force.row(legNum) - force.transpose().row(legNum) )<<endl;                 
                     break;
             }
             // cout<<stepFlag[legNum]<<endl;
@@ -589,7 +594,7 @@ void IMPControl::impCtller(int mode)
         xc_dot =  legPresVel + xc_dotdot * (1/impCtlRate);
         xc =  legPresPos + (xc_dot * (1/impCtlRate));
         
-        cout<<"force_\n"<<force.transpose()<<endl;
+        // cout<<"force_\n"<<force.transpose()<<endl;
     }
 
 }

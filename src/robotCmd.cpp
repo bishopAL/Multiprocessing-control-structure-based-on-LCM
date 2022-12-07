@@ -24,11 +24,11 @@ using namespace std;
 //  2:  Foot end position
 #define INIMODE 2
 #define _JOYSTICK 1
-#define MORTOR_ANGLE_AMP 25*3.14/180.0
+#define MORTOR_ANGLE_AMP 40*3.14/180.0
 #define loopRateCommandUpdate 100.0   //hz
 #define loopRateStateUpdateSend 20.0   //hz
 #define loopRateImpCtller 100.0   //hz
-#define VELX 8.0 /1000   // mm  step length = VELX * timeForStancePhase        
+#define VELX 6.0 /1000   // mm  step length = VELX * timeForStancePhase        
 #define TimePeriod 0.05
 #define TimeForGaitPeriod 6
 
@@ -226,31 +226,32 @@ void *runImpCtller(void *data)
 
         imp.updateFtsPresForce(motors.present_torque);  
 
-        // for(int i=0; i<4; i++)  
-        // {
-        //     for(int j=0;j<3;j++)
-        //     {
-        //         ip.target_pos[i*3 + j] = imp.legCmdPos(i,j);
-        //         // ip.target_vel[i*3 + j] = ;
-        //         // ip.target_acc[i*3 + j] = ;
-        //         // ip.target_force[i*3 + j] = ;
-        //         ip.force[i*3 + j] = imp.force(j,i);
-        //     }
-        //     ip.stanceFlag[i] = imp.stanceFlag(i);
-        //     ip.timePresentForSwing[i] = imp.timePresentForSwing(i);
-        // }
-        // Lcm.publish("IMPTAR", &ip);
-
-        ip.force[11] = imp.force(2,3);
-        ip.xc[9] = imp.legPresVel(3, 2);
-        ip.xc[10] = imp.legPresPos(3,2);
-        ip.xc[11] = imp.xc(3, 2);
-        ip.stepFlag[3] = (int)imp.stepFlag[3];
+        for(int i=0; i<4; i++)  
+        {
+            for(int j=0;j<3;j++)
+            {
+                // ip.target_pos[i*3 + j] = imp.legCmdPos(i,j);
+                // ip.target_vel[i*3 + j] = ;
+                // ip.target_acc[i*3 + j] = ;
+                // ip.target_force[i*3 + j] = ;
+                ip.force[i*3 + j] = imp.force(j,i);
+            }
+            ip.stepFlag[i] = (int) imp.stepFlag[i];
+            ip.timePresentForSwing[i] = imp.timePresentForSwing(i);
+        }
         Lcm.publish("IMPTAR", &ip);
 
-        // imp.inverseKinematics(imp.target_pos); //    within impCtller
-        imp.impCtller(1);   
-        imp.inverseKinematics(imp.xc);   //    Admittance control
+        // ip.force[11] = imp.force(2,3);
+        // ip.xc[9] = imp.legPresVel(3, 2);
+        // ip.xc[10] = imp.legPresPos(3,2);
+        // ip.xc[11] = imp.xc(3, 2);
+        // ip.stepFlag[3] = (int)imp.stepFlag[3];
+        // Lcm.publish("IMPTAR", &ip);
+
+        imp.inverseKinematics(imp.target_pos); //    within impCtller
+        // imp.impCtller(1);   
+        // imp.inverseKinematics(imp.xc);   //    Admittance control
+        
         // cout<<"xc_dotdot: \n"<<imp.xc_dotdot<<"; \nxc_dot: \n"<<imp.xc_dot<<"; \nxc: \n"<<imp.xc<<endl;
         // cout<<"legPresPos: \n"<<imp.legPresPos<<endl;
         // cout<<endl;

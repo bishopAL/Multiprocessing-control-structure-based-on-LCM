@@ -41,16 +41,20 @@ void *paraUpdate(void *data)
     {
         if(0 == Lcm.handle())
         {
+            for(int i=0; i<3; i++)
+            {
+                for(int j=0; j<4; j++)
+                    outputfile<<ipHandle.force(i,j)<<",";
+            }
             // for(int i=0; i<3; i++)
             // {
-            //     for(int j=0; j<4; j++)
-            //         outputfile<<ipHandle.force(i,j)<<",";
+            //     outputfile<<ipHandle.force(i,1)<<",";
             // }
-            outputfile<<ipHandle.force(2,3)<<",";
-            outputfile<<ipHandle.xc(3,0)<<",";
-            outputfile<<ipHandle.xc(3,1)<<",";
-            outputfile<<ipHandle.xc(3,2)<<",";
-            outputfile<<(int)ipHandle.stepFlag[3];
+            // outputfile<<(int)ipHandle.stepFlag[1];
+            for(int i=0; i<4; i++)
+            {
+                outputfile<<ipHandle.stepFlag[i]<<",";
+            }
             outputfile<<"\r\n";
         }
         usleep(1e4);
