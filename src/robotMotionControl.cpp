@@ -77,7 +77,7 @@ void MotionControl::setPhase(float tP, float tFGP, Matrix<float, 4, 2> tFSP)
  * @brief set initial position of feet in shoulder coordinate
  * 
  * @param initPosition foot position in shoulder coordinate.
- * NOTE the lenth of legs, whitch is L1, L2, L3 in constructor of MotionControl.
+ * @note The lenth of legs, whitch is L1, L2, L3 in constructor of MotionControl.
  */
 void MotionControl::setInitPos(Matrix<float, 4, 3> initPosition)
 {
@@ -85,6 +85,7 @@ void MotionControl::setInitPos(Matrix<float, 4, 3> initPosition)
     stancePhaseEndPos = initPosition;
     legPresPos = initPosition;
     legCmdPos = initPosition;
+    initFootPos = initPosition;
     targetCoMPosition.setZero();
 }
 /**
@@ -324,6 +325,7 @@ void MotionControl::nextStep()
     if (abs(timePresent - timeForGaitPeriod ) < 1e-4)  // check if present time has reach the gait period                                                               
     {                                                            // if so, set it to 0.0
         timePresent = 0.0;
+        // legCmdPos = initFootPos;
     }
 
     for(uint8_t legNum=0; legNum<4; legNum++)  // run all 4 legs
@@ -451,6 +453,7 @@ IMPControl::IMPControl()
 /**
  * @brief 
  * Calculcate feedback force in LPF with jacobian for impCtller.
+ * @note Feedback force is driving force. Use the counter force to represent the driving force. driving force = - counter force
  * @param torque update present force with present_torque
  */
 void IMPControl::updateFtsPresForce(vector<float> torque)
@@ -462,7 +465,7 @@ void IMPControl::updateFtsPresForce(vector<float> torque)
         for(int j=0;j<4;j++)
             temp(i ,j ) = torque[i+j*3];
     for (int i=0; i<4; i++)
-        force.col(i) = ForceLPF * force_last.col(i) - (1-ForceLPF) * jacobian_vector[i].transpose().inverse() * temp.col(i);
+        force.col(i) = ForceLPF * force_last.col(i) + (1-ForceLPF) * jacobian_vector[i].transpose().inverse() * temp.col(i);
     force_last = force;
 }
 /**
@@ -494,12 +497,12 @@ void IMPControl::impParaDeliver()
             if( ( timePresentForSwing(legNum) - (timeForSwing(legNum) - timePeriod *8) ) > -1e-4 )
             {
                 stepFlag[legNum] = attach;   //attach
-                target_force.row(legNum) << 0, 0, 1.2;  // x, y, z
+                target_force.row(legNum) << 0, 0, -1.6;  // x, y, z
             }
             else if( ( timePresentForSwing(legNum) - timePeriod *8 ) < 1e-4 && timePresentForSwing(legNum) > 1e-4)
             {
                 stepFlag[legNum] = detach;   //detach
-                target_force.row(legNum) << 0, 0, -1.5;
+                target_force.row(legNum) << 0, 0, 1.5;
             }
             else    //swing
             {
@@ -510,7 +513,7 @@ void IMPControl::impParaDeliver()
         else        //stance
         {
             stepFlag[legNum] = stance;
-            target_force.row(legNum) << 0.6, 0, 1.6;    
+            target_force.row(legNum) << -0.6, 0, -1.6;    
         }
     }
 
@@ -549,23 +552,30 @@ void IMPControl::impCtller(int mode)
     {
         for(uint8_t legNum=0; legNum<4; legNum++)
         {   
+            // xc_dotdot.row(legNum) =  target_acc.row(legNum) 
+            // + K_attach.row(legNum).cwiseProduct(target_pos.row(legNum) - legPresPos.row(legNum))
+            // + B_attach.row(legNum).cwiseProduct(target_vel.row(legNum) - legPresVel.row(legNum)) 
+            // + M_attach.row(legNum).cwiseInverse().cwiseProduct( target_force.row(legNum) - force.transpose().row(legNum) );
+            // cout<<"K__attach_"<<(int)legNum<<"  "<<K_attach.row(legNum).cwiseProduct(target_pos.row(legNum) - legPresPos.row(legNum))<<endl;
+            // cout<<"B__attach_"<<(int)legNum<<"  "<<B_attach.row(legNum).cwiseProduct(target_vel.row(legNum) - legPresVel.row(legNum))<<endl;
+            // cout<<"M__attach_"<<(int)legNum<<"  "<<M_stance.row(legNum).cwiseInverse().cwiseProduct( target_force.row(legNum) - force.transpose().row(legNum) )<<endl;      
             switch(stepFlag[legNum])
             {
                 case 0: //stance
                     xc_dotdot.row(legNum) =  target_acc.row(legNum) 
                     + K_stance.row(legNum).cwiseProduct(target_pos.row(legNum) - legPresPos.row(legNum))
                     + B_stance.row(legNum).cwiseProduct(target_vel.row(legNum) - legPresVel.row(legNum)) 
-                    - M_stance.row(legNum).cwiseInverse().cwiseProduct( target_force.row(legNum) - force.transpose().row(legNum) );
+                    + M_stance.row(legNum).cwiseInverse().cwiseProduct( target_force.row(legNum) - force.transpose().row(legNum) );
                     // cout<<"K__stance_"<<(int)legNum<<"  "<<K_stance.row(legNum).cwiseProduct(target_pos.row(legNum) - legPresPos.row(legNum))<<endl;
                     // cout<<"B__stance_"<<(int)legNum<<"  "<<B_stance.row(legNum).cwiseProduct(target_vel.row(legNum) - legPresVel.row(legNum))<<endl;
-                    // cout<<"M__stance_"<<(int)legNum<<"  "<<-M_stance.row(legNum).cwiseInverse().cwiseProduct( target_force.row(legNum) - force.transpose().row(legNum) )<<endl;
+                    // cout<<"M__stance_"<<(int)legNum<<"  "<<M_stance.row(legNum).cwiseInverse().cwiseProduct( target_force.row(legNum) - force.transpose().row(legNum) )<<endl;
                     break;
 
                 case 1: //swing
                     xc_dotdot.row(legNum) =  target_acc.row(legNum) 
                     + K_swing.row(legNum).cwiseProduct(target_pos.row(legNum) - legPresPos.row(legNum))
                     + B_swing.row(legNum).cwiseProduct(target_vel.row(legNum) - legPresVel.row(legNum)) 
-                    - M_swing.row(legNum).cwiseInverse().cwiseProduct( target_force.row(legNum) - force.transpose().row(legNum) );
+                    + M_swing.row(legNum).cwiseInverse().cwiseProduct( target_force.row(legNum) - force.transpose().row(legNum) );
 
                     break;
 
@@ -573,20 +583,20 @@ void IMPControl::impCtller(int mode)
                     xc_dotdot.row(legNum) =  target_acc.row(legNum) 
                     + K_detach.row(legNum).cwiseProduct(target_pos.row(legNum) - legPresPos.row(legNum))
                     + B_detach.row(legNum).cwiseProduct(target_vel.row(legNum) - legPresVel.row(legNum))   
-                    - M_detach.row(legNum).cwiseInverse().cwiseProduct( target_force.row(legNum) - force.transpose().row(legNum) );
-                    // cout<<"K__detach_"<<(int)legNum<<"  "<<K_detach.row(legNum).cwiseProduct(target_pos.row(legNum) - legPresPos.row(legNum))<<endl;
-                    // cout<<"B__detach_"<<(int)legNum<<"  "<<B_detach.row(legNum).cwiseProduct(target_vel.row(legNum) - legPresVel.row(legNum))<<endl;
-                    // cout<<"M__detach_"<<(int)legNum<<"  "<<-M_detach.row(legNum).cwiseInverse().cwiseProduct( target_force.row(legNum) - force.transpose().row(legNum) )<<endl;
+                    + M_detach.row(legNum).cwiseInverse().cwiseProduct( target_force.row(legNum) - force.transpose().row(legNum) );
+                    cout<<"K__detach_"<<(int)legNum<<"  "<<K_detach.row(legNum).cwiseProduct(target_pos.row(legNum) - legPresPos.row(legNum))<<endl;
+                    cout<<"B__detach_"<<(int)legNum<<"  "<<B_detach.row(legNum).cwiseProduct(target_vel.row(legNum) - legPresVel.row(legNum))<<endl;
+                    cout<<"M__detach_"<<(int)legNum<<"  "<<M_detach.row(legNum).cwiseInverse().cwiseProduct( target_force.row(legNum) - force.transpose().row(legNum) )<<endl;
                     break;
 
                 case 3: //attach
                     xc_dotdot.row(legNum) =  target_acc.row(legNum) 
                     + K_attach.row(legNum).cwiseProduct(target_pos.row(legNum) - legPresPos.row(legNum))
                     + B_attach.row(legNum).cwiseProduct(target_vel.row(legNum) - legPresVel.row(legNum)) 
-                    - M_attach.row(legNum).cwiseInverse().cwiseProduct( target_force.row(legNum) - force.transpose().row(legNum) );
-                    // cout<<"K__attach_"<<(int)legNum<<"  "<<K_attach.row(legNum).cwiseProduct(target_pos.row(legNum) - legPresPos.row(legNum))<<endl;
-                    // cout<<"B__attach_"<<(int)legNum<<"  "<<B_attach.row(legNum).cwiseProduct(target_vel.row(legNum) - legPresVel.row(legNum))<<endl;
-                    // cout<<"M__attach_"<<(int)legNum<<"  "<<-M_attach.row(legNum).cwiseInverse().cwiseProduct( target_force.row(legNum) - force.transpose().row(legNum) )<<endl;                 
+                    + M_attach.row(legNum).cwiseInverse().cwiseProduct( target_force.row(legNum) - force.transpose().row(legNum) );
+                    cout<<"K__attach_"<<(int)legNum<<"  "<<K_attach.row(legNum).cwiseProduct(target_pos.row(legNum) - legPresPos.row(legNum))<<endl;
+                    cout<<"B__attach_"<<(int)legNum<<"  "<<B_attach.row(legNum).cwiseProduct(target_vel.row(legNum) - legPresVel.row(legNum))<<endl;
+                    cout<<"M__attach_"<<(int)legNum<<"  "<<M_attach.row(legNum).cwiseInverse().cwiseProduct( target_force.row(legNum) - force.transpose().row(legNum) )<<endl<<endl;                 
                     break;
             }
             // cout<<stepFlag[legNum]<<endl;

@@ -41,6 +41,7 @@ class MotionControl
         Matrix<float, 4, 2> shoulderPos;  // X-Y: LF, RF, LH, RH
         Matrix<float, 4, 3> stancePhaseStartPos;
         Matrix<float, 4, 3> stancePhaseEndPos;
+        Matrix<float, 4, 3> initFootPos;    // initial position of foot  in shoulder coordinate, in order LF, RF, LH, RH; X-Y-Z
         Matrix<float, 4, 3> legCmdPos;  // command position of foot  in shoulder coordinate, in order LF, RF, LH, RH; X-Y-Z
         Matrix<float, 4, 3> legPresPos;  // present position of foot  in shoulder coordinate, in order LF, RF, LH, RH; X-Y-Z
         Matrix<float, 4, 3> legPos_last;

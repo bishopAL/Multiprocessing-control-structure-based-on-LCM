@@ -226,20 +226,20 @@ void *runImpCtller(void *data)
 
         imp.updateFtsPresForce(motors.present_torque);  
 
-        for(int i=0; i<4; i++)  
-        {
-            for(int j=0;j<3;j++)
-            {
-                // ip.target_pos[i*3 + j] = imp.legCmdPos(i,j);
-                // ip.target_vel[i*3 + j] = ;
-                // ip.target_acc[i*3 + j] = ;
-                // ip.target_force[i*3 + j] = ;
-                ip.force[i*3 + j] = imp.force(j,i);
-            }
-            ip.stepFlag[i] = (int) imp.stepFlag[i];
-            ip.timePresentForSwing[i] = imp.timePresentForSwing(i);
-        }
-        Lcm.publish("IMPTAR", &ip);
+        // for(int i=0; i<4; i++)  
+        // {
+        //     for(int j=0;j<3;j++)
+        //     {
+        //         // ip.target_pos[i*3 + j] = imp.legCmdPos(i,j);
+        //         // ip.target_vel[i*3 + j] = ;
+        //         // ip.target_acc[i*3 + j] = ;
+        //         // ip.target_force[i*3 + j] = ;
+        //         ip.force[i*3 + j] = imp.force(j,i);
+        //     }
+        //     ip.stepFlag[i] = (int) imp.stepFlag[i];
+        //     ip.timePresentForSwing[i] = imp.timePresentForSwing(i);
+        // }
+        // Lcm.publish("IMPTAR", &ip);
 
         // ip.force[11] = imp.force(2,3);
         // ip.xc[9] = imp.legPresVel(3, 2);
@@ -248,13 +248,17 @@ void *runImpCtller(void *data)
         // ip.stepFlag[3] = (int)imp.stepFlag[3];
         // Lcm.publish("IMPTAR", &ip);
 
-        imp.inverseKinematics(imp.target_pos); //    within impCtller
-        // imp.impCtller(1);   
-        // imp.inverseKinematics(imp.xc);   //    Admittance control
+        // imp.inverseKinematics(imp.target_pos); //    within impCtller
+        imp.target_pos<<imp.initFootPos;
+        imp.impCtller(1);   
+        imp.inverseKinematics(imp.xc);   //    Admittance control
         
+        // cout<<"target_pos: \n"<<imp.target_pos<<endl;
+        cout<<"legPresPos: \n"<<imp.legPresPos<<"; \nxc: \n"<<imp.xc<<endl;
+        cout<<"force:"<<endl<<imp.force.transpose()<<endl;
         // cout<<"xc_dotdot: \n"<<imp.xc_dotdot<<"; \nxc_dot: \n"<<imp.xc_dot<<"; \nxc: \n"<<imp.xc<<endl;
         // cout<<"legPresPos: \n"<<imp.legPresPos<<endl;
-        // cout<<endl;
+        cout<<endl;
 
         /*      Admittance control      */
         for(int i=0; i<4; i++)  
@@ -264,6 +268,7 @@ void *runImpCtller(void *data)
                 {
                     imp.jointCmdPos(i,j) = SetPos[i*3+j];   // last
                     cout<<"-------------motor_angle_"<<i*3+j<<" NAN-----------"<<endl;
+                    // cout<<"target_pos: \n"<<imp.target_pos<<"; \nxc: \n"<<imp.xc<<endl;
                     exit(0);
                 }
                 else
@@ -291,12 +296,12 @@ void *runImpCtller(void *data)
         //         SetTorque[i*3+j] = imp.target_torque(j,i);
         // motors.setTorque(SetTorque); 
 
-        // gettimeofday(&endTime,NULL);
-        // timeUse = 1e6*(endTime.tv_sec - startTime.tv_sec) + endTime.tv_usec - startTime.tv_usec;
-        // if(timeUse < 1e4)
-        //     usleep(1.0/loopRateImpCtller*1e6 - (double)(timeUse) - 10); 
-        // else
-        //     cout<<"timeImpCtller: "<<timeUse<<endl;
+        gettimeofday(&endTime,NULL);
+        timeUse = 1e6*(endTime.tv_sec - startTime.tv_sec) + endTime.tv_usec - startTime.tv_usec;
+        if(timeUse < 1e4)
+            usleep(1.0/loopRateImpCtller*1e6 - (double)(timeUse) - 10); 
+        else
+            cout<<"timeImpCtller: "<<timeUse<<endl;
         
         // run_times++;
         // if(run_times++ > 10)
