@@ -485,11 +485,6 @@ void IMPControl::updateTargTor(Matrix<float, 3, 4> force)
 void IMPControl::impParaDeliver()
 {
     target_pos = legCmdPos;
-    // target_force << 
-    // 0, 0, 1.0,
-    // 0, 0, 1.0,
-    // 0, 0, 1.0,
-    // 0, 0, 1.0;
     for(uint8_t legNum=0; legNum<4; legNum++)
     {   
         if(stepFlag[legNum] == swing) //swing
@@ -516,7 +511,11 @@ void IMPControl::impParaDeliver()
             target_force.row(legNum) << -0.6, 0, -1.6;    
         }
     }
-
+    target_force<< 
+    0, 0, -1.0,
+    0, 0, -1.0,
+    0, 0, -1.0,
+    0, 0, -1.0;
 }
 /**
  * @brief 
@@ -552,13 +551,6 @@ void IMPControl::impCtller(int mode)
     {
         for(uint8_t legNum=0; legNum<4; legNum++)
         {   
-            // xc_dotdot.row(legNum) =  target_acc.row(legNum) 
-            // + K_attach.row(legNum).cwiseProduct(target_pos.row(legNum) - legPresPos.row(legNum))
-            // + B_attach.row(legNum).cwiseProduct(target_vel.row(legNum) - legPresVel.row(legNum)) 
-            // + M_attach.row(legNum).cwiseInverse().cwiseProduct( target_force.row(legNum) - force.transpose().row(legNum) );
-            // cout<<"K__attach_"<<(int)legNum<<"  "<<K_attach.row(legNum).cwiseProduct(target_pos.row(legNum) - legPresPos.row(legNum))<<endl;
-            // cout<<"B__attach_"<<(int)legNum<<"  "<<B_attach.row(legNum).cwiseProduct(target_vel.row(legNum) - legPresVel.row(legNum))<<endl;
-            // cout<<"M__attach_"<<(int)legNum<<"  "<<M_stance.row(legNum).cwiseInverse().cwiseProduct( target_force.row(legNum) - force.transpose().row(legNum) )<<endl;      
             switch(stepFlag[legNum])
             {
                 case 0: //stance
@@ -600,6 +592,10 @@ void IMPControl::impCtller(int mode)
                     break;
             }
             // cout<<stepFlag[legNum]<<endl;
+             xc_dotdot.row(legNum) =  target_acc.row(legNum) 
+            + K_attach.row(legNum).cwiseProduct(target_pos.row(legNum) - legPresPos.row(legNum))
+            + B_attach.row(legNum).cwiseProduct(target_vel.row(legNum) - legPresVel.row(legNum)) 
+            + M_attach.row(legNum).cwiseInverse().cwiseProduct( target_force.row(legNum) - force.transpose().row(legNum) );
         }
         xc_dot =  legPresVel + xc_dotdot * (1/impCtlRate);
         xc =  legPresPos + (xc_dot * (1/impCtlRate));
