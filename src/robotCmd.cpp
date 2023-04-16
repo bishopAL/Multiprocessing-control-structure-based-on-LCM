@@ -25,9 +25,9 @@ using namespace std;
 #define INIMODE 2
 #define _JOYSTICK 1
 #define MORTOR_ANGLE_AMP 40*3.14/180.0
-#define loopRateCommandUpdate 100.0   //hz
+#define loopRateCommandUpdate 200.0   //hz
 #define loopRateStateUpdateSend 20.0   //hz
-#define loopRateImpCtller 100.0   //hz
+#define loopRateImpCtller 200.0   //hz
 #define VELX 6.0 /1000   // mm  step length = VELX * timeForStancePhase        
 #define TimePeriod 0.05
 #define TimeForGaitPeriod 6
@@ -46,7 +46,7 @@ vector<int> ID = {
 6,7,8
 ,9,10,11
 };
-DxlAPI motors("/dev/ttyUSB0", 1000000, ID, 1);  //3000000  cannot hold 6 legs ttyUSB0 ttyAMA0
+DxlAPI motors("/dev/ttyAMA0", 3000000, ID, 1);  //3000000  cannot hold 6 legs ttyUSB0 ttyAMA0
 vector<float> SetPos(12), SetTorque(12);
 
 void *robotCommandUpdate(void *data)
@@ -129,14 +129,14 @@ void *robotStateUpdateSend(void *data)
 #endif    
     
     //      imp initial
-    // TimeForStancePhase<< 0,                       TimeForGaitPeriod/2.0,     // diagonal
-    //                      TimeForGaitPeriod/2.0,   TimeForGaitPeriod, 
-    //                      TimeForGaitPeriod/2.0,   TimeForGaitPeriod, 
-    //                      0,                       TimeForGaitPeriod/2.0;
-    TimeForStancePhase<< TimeForGaitPeriod/4.0 *3,          TimeForGaitPeriod/4.0 *2,   // tripod
-                         TimeForGaitPeriod/4.0,             TimeForGaitPeriod,
-                         TimeForGaitPeriod - TimePeriod,    TimeForGaitPeriod/4.0 *3,
-                         TimeForGaitPeriod/4.0 *2,          TimeForGaitPeriod/4.0;
+    TimeForStancePhase<< 0,                       TimeForGaitPeriod/2.0,     // diagonal
+                         TimeForGaitPeriod/2.0,   TimeForGaitPeriod, 
+                         TimeForGaitPeriod/2.0,   TimeForGaitPeriod, 
+                         0,                       TimeForGaitPeriod/2.0;
+    // TimeForStancePhase<< TimeForGaitPeriod/4.0 *3,          TimeForGaitPeriod/4.0 *2,   // tripod
+    //                      TimeForGaitPeriod/4.0,             TimeForGaitPeriod,
+    //                      TimeForGaitPeriod - TimePeriod,    TimeForGaitPeriod/4.0 *3,
+    //                      TimeForGaitPeriod/4.0 *2,          TimeForGaitPeriod/4.0;
     imp.setPhase(TimePeriod, TimeForGaitPeriod, TimeForStancePhase);
 
 #if(INIMODE==2)
@@ -187,8 +187,8 @@ void *robotStateUpdateSend(void *data)
         double timeUse;
         gettimeofday(&startTime,NULL);
 
-        //If stay static, annotate below one line.
-        imp.nextStep();//
+        imp.oneLegSwing(0, 0.014);
+        // imp.nextStep(); // If you want the robot stay static, place annotate this one line.
         imp.impParaDeliver();
         // cout<<"legCmdPos:\n"<<imp.legCmdPos<<endl;
 
@@ -241,24 +241,17 @@ void *runImpCtller(void *data)
         // }
         // Lcm.publish("IMPTAR", &ip);
 
-        // ip.force[11] = imp.force(2,3);
-        // ip.xc[9] = imp.legPresVel(3, 2);
-        // ip.xc[10] = imp.legPresPos(3,2);
-        // ip.xc[11] = imp.xc(3, 2);
-        // ip.stepFlag[3] = (int)imp.stepFlag[3];
-        // Lcm.publish("IMPTAR", &ip);
-
-        // imp.inverseKinematics(imp.target_pos); //    within impCtller
-        imp.target_pos<<imp.initFootPos;
-        imp.impCtller(1);   
-        imp.inverseKinematics(imp.xc);   //    Admittance control
+        imp.inverseKinematics(imp.target_pos); //    within impCtller
+        // imp.impCtller(1);  
+        // imp.impCtllerOneLeg(0); 
+        // imp.inverseKinematics(imp.xc);   //    Admittance control
         
         // cout<<"target_pos: \n"<<imp.target_pos<<endl;
-        cout<<"legPresPos: \n"<<imp.legPresPos<<"; \nxc: \n"<<imp.xc<<endl;
-        cout<<"force:"<<endl<<imp.force.transpose()<<endl;
-        // cout<<"xc_dotdot: \n"<<imp.xc_dotdot<<"; \nxc_dot: \n"<<imp.xc_dot<<"; \nxc: \n"<<imp.xc<<endl;
-        // cout<<"legPresPos: \n"<<imp.legPresPos<<endl;
-        cout<<endl;
+        // cout<<"legPresPos: \n"<<imp.legPresPos<<"; \nxc: \n"<<imp.xc<<endl;
+        // cout<<"force:"<<endl<<imp.force.transpose()<<endl;
+        // // cout<<"xc_dotdot: \n"<<imp.xc_dotdot<<"; \nxc_dot: \n"<<imp.xc_dot<<"; \nxc: \n"<<imp.xc<<endl;
+        // // cout<<"legPresPos: \n"<<imp.legPresPos<<endl;
+        // cout<<endl;
 
         /*      Admittance control      */
         for(int i=0; i<4; i++)  
@@ -268,7 +261,8 @@ void *runImpCtller(void *data)
                 {
                     imp.jointCmdPos(i,j) = SetPos[i*3+j];   // last
                     cout<<"-------------motor_angle_"<<i*3+j<<" NAN-----------"<<endl;
-                    // cout<<"target_pos: \n"<<imp.target_pos<<"; \nxc: \n"<<imp.xc<<endl;
+                    cout<<"target_pos: \n"<<imp.target_pos<<"; \nxc: \n"<<imp.xc<<endl;
+                    cout<<"legStatus: "<<imp.legStatus[i]<<endl;
                     exit(0);
                 }
                 else

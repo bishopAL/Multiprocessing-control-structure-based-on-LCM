@@ -50,10 +50,10 @@ void *paraUpdate(void *data)
             // {
             //     outputfile<<ipHandle.force(i,1)<<",";
             // }
-            // outputfile<<(int)ipHandle.stepFlag[1];
+            // outputfile<<(int)ipHandle.legStatus[1];
             for(int i=0; i<4; i++)
             {
-                outputfile<<ipHandle.stepFlag[i]<<",";
+                outputfile<<ipHandle.legStatus[i]<<",";
             }
             outputfile<<"\r\n";
         }

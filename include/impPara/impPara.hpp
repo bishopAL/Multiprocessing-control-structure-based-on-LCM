@@ -52,7 +52,7 @@ class impPara
 
         float      M_adhesion[12];
 
-        int8_t     stepFlag[4];
+        int8_t     legStatus[4];
 
         float      timePresentForSwing[4];
 
@@ -206,7 +206,7 @@ int impPara::_encodeNoHash(void *buf, int offset, int maxlen) const
     tlen = __float_encode_array(buf, offset + pos, maxlen - pos, &this->M_adhesion[0], 12);
     if(tlen < 0) return tlen; else pos += tlen;
 
-    tlen = __int8_t_encode_array(buf, offset + pos, maxlen - pos, &this->stepFlag[0], 4);
+    tlen = __int8_t_encode_array(buf, offset + pos, maxlen - pos, &this->legStatus[0], 4);
     if(tlen < 0) return tlen; else pos += tlen;
 
     tlen = __float_encode_array(buf, offset + pos, maxlen - pos, &this->timePresentForSwing[0], 4);
@@ -273,7 +273,7 @@ int impPara::_decodeNoHash(const void *buf, int offset, int maxlen)
     tlen = __float_decode_array(buf, offset + pos, maxlen - pos, &this->M_adhesion[0], 12);
     if(tlen < 0) return tlen; else pos += tlen;
 
-    tlen = __int8_t_decode_array(buf, offset + pos, maxlen - pos, &this->stepFlag[0], 4);
+    tlen = __int8_t_decode_array(buf, offset + pos, maxlen - pos, &this->legStatus[0], 4);
     if(tlen < 0) return tlen; else pos += tlen;
 
     tlen = __float_decode_array(buf, offset + pos, maxlen - pos, &this->timePresentForSwing[0], 4);

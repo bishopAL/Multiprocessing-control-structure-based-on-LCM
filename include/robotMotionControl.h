@@ -28,13 +28,13 @@ class MotionControl
         float timeForGaitPeriod;  // The time of the whole period
         float timePeriod;  // The time of one period
         float timePresent;  
-        Vector<float, 4> timeForSwing;   // The swing time for legs
+        Vector<float, 4> timeForSwing;   // The swing time for legs, include detach, attach and swing.
         Matrix<float, 4, 2> timeForStancePhase;  // startTime, endTime: LF, RF, LH, RH
         Vector<float, 3> targetCoMVelocity;  // X, Y , alpha in world cordinate
         Vector<float, 3> presentCoMVelocity;  // X, Y , alpha in world cordinate
         Matrix<float, 4, 3> targetCoMPosition;  // X, Y , alpha in world cordinate
         float yawVelocity;   // yaw velocity from imu
-        enum _stepFlag{stance=0, swing, detach, attach}stepFlag[4];  //  0-stance, 1-swing, 2-detach, 3-attach: LF, RF, LH, RH
+        enum _legStatus{stance=0, swing, detach, attach}legStatus[4];  //  0-stance, 1-swing, 2-detach, 3-attach: LF, RF, LH, RH
         Vector<float, 4> timePresentForSwing;
         float L1, L2, L3;  // The length of L
         float width, length;
@@ -75,6 +75,8 @@ class MotionControl
         void setCoMVel(Vector<float, 3> tCV);   
         void setPhase(float tP, float tFGP, Matrix<float, 4, 2> tFSP);
         void nextStep();
+        void oneLegSwing(uint8_t swingLegNum, float length);
+        void updateLegStatus();
         void updatejointPresPos(vector<float> jointPos);
         void updatejointPresVel(vector<float> jointVel);
         void updateJacobians();
@@ -108,6 +110,7 @@ class IMPControl : public MotionControl
         void updateTargTor(Matrix<float, 3, 4> force);
         void impParaDeliver();
         void impCtller(int mode);
+        void impCtllerOneLeg(int legNum);
         void impChangePara(Matrix<float, 4, 3> mK, Matrix<float, 4, 3> mB, Matrix<float, 4, 3> mM, int mode);
         IMPControl();
 };
